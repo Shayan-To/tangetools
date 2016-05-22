@@ -1,20 +1,62 @@
 #!/usr/bin/perl
 
-# This program generates passwords that:
-#
-# * are hard to guess
-# * will be displayed unambigously in any (normal) font
-# * will survive being passed through a bad fax machine
-# * will survive being passed through handwriting
-# * has UPPER lower number and sign
-#
-# Too close: B8 cC g9 6G kK lI l1 oO O0 pP sS uU vV xX zZ Z2 ,. :; `' S5
-# Causes problems in URLs: @/:
-# Causes problems in shell: ! " # $ & ( ) [ ] { } ? | < > \ * =
-# SQL uses: % for wildcard
-# Hard to type: ^ ~ ¨ ¤ § ½ æ ø å Æ Ø Å
-# Never 2 same chars next to eachother. (--) is bad
-# Do not start with '-' or '+' as that looks like an (long) option
+=encoding utf8
+
+=head1 NAME
+
+goodpasswd - generate good access codes
+
+
+=head1 SYNOPSIS
+
+B<goodpasswd>
+
+
+=head1 DESCRIPTION
+
+B<goodpasswd> generates access codes that:
+
+=over 3
+
+=item Z<>* are hard to guess
+
+=item Z<>* will be displayed unambigously in any (normal) font
+
+=item Z<>* will survive being passed through a bad fax machine
+
+=item Z<>* will survive being passed through handwriting
+
+=item Z<>* will survive unquoted in most scripts
+
+=item Z<>* has characters from the character classes UPPER lower number and sign
+
+=back
+
+=head2 Characters considered too close
+
+These character couples are too similar either in different fonts or
+in a bad copy and are thus forbidden: B8 cC g9 6G kK lI l1 oO O0 pP sS uU vV xX zZ Z2 ,. :; `' S5
+
+These characters cause problems in URLs: @/:
+
+These characters cause problems in shell: ! " # $ & ( ) [ ] { } ? | < > \ * =
+
+These characters cause problems in SQL (wildcard): %
+
+These characters are hard to type: ^ ~ ¨ ¤ § ½ æ ø å Æ Ø Å
+
+=head2 Other restrictions
+
+Never use the same chars twice in a row: e.g. -- is bad.
+
+Do not start with '-' or '+' as that looks like an (long) option
+
+=head1 EXAMPLE
+
+B<goodpasswd> will give output similar to FJiY7j+7DQ-D.
+
+=cut
+
 #
 # US-kbd: ~!@#$%^&*()_+ [] {} ;'\ :"| < > ,./ <>? 
 # DK-kbd: §!"#¤%&/()=?` å" Å^ æø' ÆØ* < > ,.- ;:_
