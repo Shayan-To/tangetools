@@ -1,5 +1,69 @@
 #!/usr/bin/perl
 
+=head1 NAME
+
+wssh - wait for ssh port to open and then ssh
+
+
+=head1 SYNOPSIS
+
+B<wssh> [sshoptions] I<host>
+
+
+=head1 DESCRIPTION
+
+B<wssh> waits for port 22 to open and then B<ssh>s to the given I<host>.
+
+
+=head1 EXAMPLE
+
+B<wssh example.com>
+
+
+=head1 EXIT STATUS
+
+Returns the same as B<ssh>.
+
+
+=head1 REPORTING BUGS
+
+Contact Ole Tange <ole@tange.dk>.
+
+
+=head1 AUTHOR
+
+Copyright (C) 2012 Ole Tange <ole@tange.dk>.
+
+
+=head1 LICENSE
+
+Copyright (C) 2012 Free Software Foundation, Inc.
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+at your option any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 DEPENDENCIES
+
+B<wssh> uses Perl, and B<w4it-for-port-open>.
+
+
+=head1 SEE ALSO
+
+B<ssh>(1)
+
+=cut
+
 use Getopt::Long;
 
 my @argv = @ARGV;

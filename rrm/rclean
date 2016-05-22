@@ -1,0 +1,57 @@
+#!/usr/bin/perl
+
+use Digest::MD5::File qw(dir_md5_hex file_md5_hex url_md5_hex);
+
+my $dir = shift || ".";
+
+chdir $dir;
+
+
+# Table of which files have a given size
+open(IN,"-|",'find "`pwd`" -type f -printf "%s\t%p\0"') || die;
+$/="\0";
+my %size;
+while(<IN>) {
+    chop; # Remove \0
+    my($s,$f) = split /\t/,$_;
+    push @{$size{$s}}, $f;
+}
+close IN;
+
+# Read md5sum of removed files of a given size
+my %rrm;
+my $rrmfile = find_rrm_file(".") || ".rrm";
+open(RRM,"<",$rrmfile) || die;
+while(<RRM>) {
+    my($size,$md5,$file) = split /\t/,$_;
+    $rrm{0+$size}{$md5}++;
+}
+close RRM;
+
+# Which existing files are the same size as some of the removed files?
+for my $size (keys %rrm) {
+    for my $file (@{$size{$size}}) {
+	if(-e $file) {
+	    my $md5 = Digest::MD5->new;	
+	    $md5->addpath($file);
+	    # Do they have the same md5sum?
+	    if($rrm{$size}{$md5->hexdigest}) {
+		# remove this
+		print "$file\n";
+	    }
+	}
+    }
+}
+
+sub find_rrm_file {
+    my $dir = shift;
+    if(-r "$dir/.rrm") {
+	return "$dir/.rrm";
+    }
+    if(join(" ",stat $dir) eq join(" ",stat "$dir/..")) {
+	# root
+	return undef;
+    } else {
+	return find_rrm_file("$dir/..");
+    } 
+}

@@ -1,0 +1,84 @@
+#!/usr/bin/perl
+
+=encoding utf8
+
+=head1 NAME
+
+rrm - record and remove file
+
+
+=head1 SYNOPSIS
+
+B<rrm> I<file>
+
+
+=head1 DESCRIPTION
+
+B<rrm> records a file's MD5sum before removing it. It makes it
+possible to automatically remove the file again should it ever
+reappear.
+
+This is useful for cleaning up photos where other partial backups of
+the photos are later added: Photos removed once can easily be
+identified and removed automatically if added by the backup.
+
+
+=head1 EXAMPLE
+
+B<rrm> IMG_2035.JPG
+
+Restore a backup containing I<IMG_2035.JPG>.
+
+B<rclean>
+
+B<rclean> will find B<IMG_2035.JPG> as it has the same size and MD5sum
+as an already removed file.
+
+
+=head1 FILES
+
+The file B<.rrm> contains the database of size, md5sum, and names of
+the files. It is created in current directory if it cannot be found in
+any of the (grand*)parent directories.
+
+
+=head1 SEE ALSO
+
+B<rclean>(1), B<rm>(1), B<md5sum>(1)
+
+
+=cut
+
+
+use Digest::MD5::File qw(dir_md5_hex file_md5_hex url_md5_hex);
+
+my %size;
+my %md5;
+for my $file (@ARGV) {
+    if(-s $file > 0) {
+	$size{$file} = -s $file;
+	my $md5 = Digest::MD5->new;
+	$md5->addpath($file);
+	$md5{$file} = $md5->hexdigest;
+    }    
+}
+
+$rrmfile = find_rrm_file(".") || ".rrm";
+
+open(RRM,">>",$rrmfile) || die("Cannot write to $rrmfile.");
+print RRM map { $size{$_}."\t".$md5{$_}."\t".$_."\0\n" } @ARGV;
+close RRM;
+unlink @ARGV;
+
+sub find_rrm_file {
+    my $dir = shift;
+    if(-r "$dir/.rrm") {
+	return "$dir/.rrm";
+    }
+    if(join(" ",stat $dir) eq join(" ",stat "../$dir")) {
+	# We have reached root dir (.. = .)
+	return undef;
+    } else {
+	return find_rrm_file("../$dir");
+    } 
+}
