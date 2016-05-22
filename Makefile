@@ -5,7 +5,6 @@ all: blink/blink.1 goodpasswd/goodpasswd.1 histogram/histogram.1 rand/rand.1 rrm
 %.1: %
 	pod2man $< > $@
 
-
 install:
 	mkdir -p /usr/local/bin
 	parallel eval ln -sf `pwd`/*/{} /usr/local/bin/{} ::: blink reniced em field forever neno rn stdout tracefile w4it-for-port-open upsidedown histogram goodpasswd mtrr not summer timestamp transpose wssh aptsearch rand rrm

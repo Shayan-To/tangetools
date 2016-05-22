@@ -6,9 +6,9 @@ tracefile - list files being accessed
 
 =head1 SYNOPSIS
 
-B<tracefile> [-aenu] I<command>
+B<tracefile> [-adenu] I<command>
 
-B<tracefile> [-aenu] -p I<pid>
+B<tracefile> [-adenu] -p I<pid>
 
 =head1 DESCRIPTION
 
@@ -16,7 +16,7 @@ B<tracefile> will print the files being accessed by the command.
 
 =head1 OPTIONS
 
-=over 9
+=over 12
 
 =item I<command>
 
@@ -25,24 +25,42 @@ Command to run.
 
 =item B<-a>
 
+=item B<--all>
+
 List all files.
 
 
+=item B<-d>
+
+=item B<--dir>
+
+List only dirs.
+
+
 =item B<-e>
+
+=item B<--exist>
 
 List only existing files.
 
 
 =item B<-n>
 
+=item B<--nonexist>
+
 List only non-existing files.
 
+
 =item B<-p> I<pid>
+
+=item B<--pid> I<pid>
 
 Trace process id.
 
 
 =item B<-u>
+
+=item B<--unique>
 
 List only files once.
 
@@ -72,7 +90,7 @@ Report bugs to <tange@gnu.org>.
 
 =head1 AUTHOR
 
-Copyright (C) 2012 Ole Tange, http://ole.tange.dk and Free
+Copyright (C) 2012,2016 Ole Tange, http://ole.tange.dk and Free
 Software Foundation, Inc.
 
 
@@ -202,7 +220,7 @@ $Global::progname = "tracefile";
 Getopt::Long::Configure("bundling","pass_through");
 get_options_from_array(\@ARGV) || die_usage();
 
-if(not ($opt::exists or $opt::nonexists or $opt::all)) {
+if(not ($opt::exists or $opt::nonexists or $opt::all or $opt::dir)) {
     $opt::all = 1;
 }
 
@@ -227,6 +245,8 @@ while(<IN>) {
 	   or
 	   ($opt::exists and -e $file)
 	   or
+	   ($opt::dir and -d $file)
+	   or
 	   ($opt::nonexists and not -e $file)) {
 	    $print = 1;
 	}
@@ -241,6 +261,7 @@ sub options_hash {
     # Returns a hash of the GetOptions config
     return
 	("debug|D" => \$opt::debug,
+	 "dir|d" => \$opt::dir,
 	 "uniq|unique|u" => \$opt::unique,
          "exists|exist|e" => \$opt::exists,
          "nonexists|nonexist|non-exists|non-exist|n" => \$opt::nonexists,
