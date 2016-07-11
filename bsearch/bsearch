@@ -1,0 +1,146 @@
+#!/usr/bin/perl
+
+use Getopt::Long;
+
+
+GetOptions(
+    "debug|D=s" => \$opt::D,
+    "version" => \$opt::version,
+    "verbose|v" => \$opt::verbose,
+    "b|ignore-leading-blanks" => \$opt::ignore_leading_blanks,
+    "d|dictionary-order" => \$opt::dictionary_order,
+    "f|ignore-case" => \$opt::ignore_case,
+    "g|general-numeric-sort" => \$opt::general_numeric_sort,
+    "i|ignore-nonprinting" => \$opt::ignore_nonprinting,
+    "M|month-sort" => \$opt::month_sort,
+    "h|human-numeric-sort" => \$opt::human_numeric_sort,
+    "n|numeric-sort" => \$opt::numeric_sort,
+    "r|reverse" => \$opt::reverse,
+    "sort=s" => \$opt::sort,
+    "V|version-sort" => \$opt::version_sort,
+    "k|key=s" => \@opt::key,
+    "t|field-separator=s" => \$opt::field_separator,
+    "z|zero-terminated" => \$opt::zero_terminated,
+    );
+$Global::progname = "bsearch";
+$Global::version = 20160712;
+if($opt::version) {
+    version();
+    exit 0;
+}
+
+my $file = shift;
+
+for my $key (@ARGV) {
+    print bsearch($file,$key),"\n";
+}
+
+sub bsearch {
+    my $file = shift;
+    my $key = shift;
+    my $min = 0;
+    my $max = -s $file;
+
+    if(not open ($fh, "<", $file)) {
+	error("Cannot open '$file'");
+	exit 1;
+    }
+    my $line;
+    while($max - $min > 1) {
+	$middle = int(($max+$min)/2);
+	seek($fh,$middle,0) or die;
+	my $half = <$fh>;
+	if(eof($fh)
+	   or 
+	   compare(($line = <$fh>),$key) >= 0) {
+	    $max = $middle;
+	} else {
+	    $min = $middle;
+	}
+    }
+    seek($fh,$max,0) or die;
+    $line = <$fh>;
+    if(compare($line,$key) >= 0) {
+	return 0;
+    } else {
+	return tell $fh;
+    }
+}
+
+# -n, --numeric-sort
+# -r --reverse
+# -f, --ignore-case
+
+sub compare {
+    my ($a,$b) = @_;
+    if($opt::reverse) {
+	($a,$b) = ($b,$a);
+    }
+    if($opt::ignore_case) {
+	$a = uc($a);
+	$b = uc($b);
+    }
+    if($opt::numeric_sort) {
+	return $a <=> $b;
+    } elsif($opt::numascii) {
+	return $a <=> $b or $a cmp $b;
+    } else {
+	return $a cmp $b;
+    }
+}
+
+sub status {
+    my @w = @_;
+    my $fh = $Global::status_fd || *STDERR;
+    print $fh map { ($_, "\n") } @w;
+    flush $fh;
+}
+
+sub status_no_nl {
+    my @w = @_;
+    my $fh = $Global::status_fd || *STDERR;
+    print $fh @w;
+    flush $fh;
+}
+
+sub warning {
+    my @w = @_;
+    my $prog = $Global::progname || "parallel";
+    status_no_nl(map { ($prog, ": Warning: ", $_, "\n"); } @w);
+}
+
+sub error {
+    my @w = @_;
+    my $prog = $Global::progname || "parallel";
+    status(map { ($prog.": Error: ". $_); } @w);
+}
+
+sub die_bug {
+    my $bugid = shift;
+    print STDERR
+	("$Global::progname: This should not happen. You have found a bug.\n",
+	 "Please contact <parallel\@gnu.org> and include:\n",
+	 "* The version number: $Global::version\n",
+	 "* The bugid: $bugid\n",
+	 "* The command line being run\n",
+	 "* The files being read (put the files on a webserver if they are big)\n",
+	 "\n",
+	 "If you get the error on smaller/fewer files, please include those instead.\n");
+    ::wait_and_exit(255);
+}
+
+sub version {
+    # Returns: N/A
+    print join("\n",
+               "GNU $Global::progname $Global::version",
+               "Copyright (C) 2016",
+	       "Ole Tange and Free Software Foundation, Inc.",
+               "License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>",
+               "This is free software: you are free to change and redistribute it.",
+               "GNU $Global::progname comes with no warranty.",
+               "",
+               "Web site: http://www.gnu.org/software/${Global::progname}\n",
+	       "When using programs that use GNU Parallel to process data for publication",
+	       "please cite as described in 'parallel --citation'.\n",
+        );
+}

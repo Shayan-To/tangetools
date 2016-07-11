@@ -1,0 +1,43 @@
+#!/bin/bash
+
+test_tmp=`tempfile`
+export test_tmp
+
+test_n() {
+    tmp=${test_tmp}_n
+    true > $tmp
+    bsearch -n $tmp 0 2 2.1 100000
+    echo > $tmp
+    xargs < $tmp
+    bsearch -n $tmp 0 2 2.1 100000
+    echo 1.000000000 > $tmp
+    xargs < $tmp
+    bsearch -n $tmp 0 2 2.1 100000
+    echo 1.000000000 > $tmp
+    echo 2 >> $tmp
+    xargs < $tmp
+    bsearch -n $tmp 0 2 2.1 100000
+    echo 1 > $tmp
+    echo 2.000000000 >> $tmp
+    xargs < $tmp
+    bsearch -n $tmp 0 2 2.1 100000
+    echo 1.000000000 > $tmp
+    echo 2 >> $tmp
+    echo 3 >> $tmp
+    xargs < $tmp
+    bsearch -n $tmp 0 2 2.1 100000
+    echo 1 > $tmp
+    echo 2.000000000 >> $tmp
+    echo 3 >> $tmp
+    xargs < $tmp
+    bsearch -n $tmp 0 2 2.1 100000
+    echo 1 > $tmp
+    echo 2 >> $tmp
+    echo 3.000000000 >> $tmp
+    xargs < $tmp
+    bsearch -n $tmp 0 2 2.1 100000
+}
+
+
+export -f $(compgen -A function | grep test_)
+compgen -A function | grep test_ | sort | parallel -j6 --tag -k '{} 2>&1'
