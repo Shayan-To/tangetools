@@ -36,6 +36,7 @@ test_n() {
     echo 3.000000000 >> $tmp
     xargs < $tmp
     bsearch -n $tmp 0 2 2.1 100000
+    rm $tmp
 }
 
 
