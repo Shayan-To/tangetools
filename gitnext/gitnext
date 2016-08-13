@@ -1,0 +1,6 @@
+#!/bin/bash
+
+# Checkout next revision
+# Opposite of 'checkout HEAD^'
+
+git checkout $(git log --reverse --ancestry-path HEAD..master|head -n 1|field 2)
