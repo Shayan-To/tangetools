@@ -1,6 +1,5 @@
 #!/usr/bin/perl
 
-
 use File::Temp qw(tempfile tempdir);
 
 #$Global::debug = 1;
@@ -8,7 +7,7 @@ my $block = "30m";
 debug("parallel --pipe --block $block -k --files -j150% transpose-par.pl\n");
 my @files = `parallel --pipe --block $block -k --files -j150% transpose-par.pl`;
 chomp(@files);
-my $tmp = File::Temp::tempdir(CLEANUP => 0);
+my $tmp = File::Temp::tempdir(CLEANUP => 1);
 my $fifo = "$tmp/0000000";
 my $cmd = "mkfifo $fifo; paste > $fifo ";
 my (@fifos, @args);

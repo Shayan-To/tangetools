@@ -2,6 +2,8 @@ Tools developed by Ole Tange <ole@tange.dk>.
 
 Probably not useful for you, but then again you never now.
 
+bsearch - binary search through sorted text files.
+
 em - Force emacs to run in terminal. Use xemacs if installed.
 
 field - Split on space. Give the given field number. Supports syntax 1-3,6-
