@@ -68,6 +68,11 @@ B<openssl>
 
 # Generate random 8-bit data by AES encrypting /dev/zero with a random
 # key
-key=$(openssl rand -hex 16)
-iv=$(openssl rand -hex 16)
-< /dev/zero openssl enc -aes-128-ctr -K $key -iv $iv 2>/dev/null
+randfunc() {
+    key=$(openssl rand -hex 16)
+    iv=$(openssl rand -hex 16)
+    < /dev/zero openssl enc -aes-128-ctr -K $key -iv $iv 2>/dev/null
+}
+export -f randfunc
+# Boost performance by running 1 per CPU core
+eval parallel -u randfunc ::: {1..$(parallel --number-of-cores)}
