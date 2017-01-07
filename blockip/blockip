@@ -1,0 +1,71 @@
+#!/usr/bin/perl
+
+# blockip i.p.n.r/bits days
+
+# Block IP-net for some days by routing it to 127.x.y.z
+
+my $ipnet = shift;
+my $days = shift;
+my ($yy,$mm,$dd) = (localtime(time+24*60*60*$days))[5,4,3];
+
+$yy %=100; # 2 digit year
+$mm++; # Perl month from 0..11
+
+my ($octets,$bits) = split m:/:, $ipnet;
+$bits ||= 31;
+my @ipoctets = split /\./,$octets;
+my $ip32 = ip_quad_to_ip32(@ipoctets);
+my $net32 = $ip32 & ~(2**(32-$bits) - 1);
+my @net = ip32_to_ip_quad($net32);
+my @ipnet = join(".",@net);
+
+block($yy,$mm,$dd,$bits,@ipnet);
+
+
+($yy,$mm,$dd) = (localtime(time))[5,4,3];
+
+$yy %=100; # 2 digit year
+$mm++; # Perl month from 0..11
+unblock($yy,$mm,$dd);
+
+sub unblock {
+    my ($yy,$mm,$dd) = @_;
+    my @routes = `route -n`;
+    for (@routes) {
+	my ($net,$gw,$mask,$rest) = split/ +/;
+	if($gw =~ /^127\.(\d+)\.(\d+)\.(\d+)/) {
+	    # A blackholed route
+	    if("$yy-$mm-$dd" ge "$1-$2-$3") {
+		# Remove blackhole
+		print("route del -net $net netmask $mask gw $gw\n");
+		system("route del -net $net netmask $mask gw $gw");
+	    }
+	}
+    }
+}
+
+sub block {
+    my ($yy,$mm,$dd,$bits,@ipnet) = @_;
+    print("route add -net @ipnet/$bits gw 127.$yy.$mm.$dd\n");
+    system("route add -net @ipnet/$bits gw 127.$yy.$mm.$dd");
+}
+
+sub ip_quad_to_ip32 {
+    my @ipoctests = @_;
+    return(
+	($ipoctets[0] << 24) +
+	($ipoctets[1] << 16) +	
+	($ipoctets[2] << 8) +	
+	($ipoctets[3] << 0));
+}
+
+sub ip32_to_ip_quad {
+    my $ip32 = shift;
+    return (
+	($ip32 >> 24) & 255,
+	($ip32 >> 16) & 255,
+	($ip32 >> 8) & 255,
+	($ip32 >> 0) & 255
+	);
+}
+    
