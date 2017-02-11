@@ -34,4 +34,6 @@ tracefile - List files/dirs being accessed by program.
 
 w4it-for-port-open - Block until the given port opens on a given host.
 
+wastebasket - VLC extension for moving current file to a wastebasket
+
 wssh - Shorthand for w4it-for-port-open $host 22; ssh $host
