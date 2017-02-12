@@ -23,7 +23,7 @@ function descriptor()
     .. "<br>This will NOT change your playlist, it will move the file itself. "
     .. "<br>Wastebasket will search for a dir called .waste "
     .. "in the dir of the file and all parent dirs of that.";
-    url = "https://gitlab.com/ole.tange/tangetools/wastebasket"
+    url = "https://gitlab.com/ole.tange/tangetools/tree/master/wastebasket"
   }
 end
 
@@ -31,17 +31,7 @@ end
 
 -- Activation hook
 function activate()
-  -- get the current playing file
-  item = vlc.input.item()
-  -- extract its URI
-  uri = item:uri()
-  -- decode %foo stuff from the URI
-  filename = vlc.strings.decode_uri(uri)
-  -- remove 'file://' prefix which is 7 chars long
-  filename = string.sub(filename,8)
-
-  -- find .waste in parent dirs
-  wdir = wastedir(dirname(filename))
+  local filename,dst,wdir = filename_dst_wastedir()
   if(directory_exists(wdir)) then
     d = vlc.dialog("Wastebasket")
     d:add_label("Move <b>".. filename .. "</b> to <b>" .. wdir .. "</b>?")
@@ -57,17 +47,32 @@ function activate()
   vlc.msg.dbg("[Wastebasket] Activated")
 end
 
+function filename_dst_wastedir()
+  -- get the current playing file
+  local item = vlc.input.item()
+  -- extract its URI
+  local uri = item:uri()
+  -- decode %foo stuff from the URI
+  local filename = vlc.strings.decode_uri(uri)
+  -- remove 'file://' prefix which is 7 chars long
+  filename = string.sub(filename,8)
+
+  -- find .waste in parent dirs
+  local wdir = wastedir(dirname(filename))
+  return filename,wdir .. "/" .. basename(filename),wdir
+end
+
 function wastedir(dir)
   -- recursively search for .waste in parent dir
 
   vlc.msg.dbg("[Wastebasket/wastedir] Looking at " .. dir)
-  wdir = dir .. "/" .. ".waste"
+  local wdir = dir .. "/" .. ".waste"
   if directory_exists(wdir) then
      vlc.msg.dbg("[Wastebasket/wastedir] Found wastedir: " .. wdir)
      return wdir
   end
   -- try the parent dir
-  parent = dirname(dir)
+  local parent = dirname(dir)
   vlc.msg.dbg("[Wastebasket/wastedir] parent " .. parent)
   if directory_exists(parent) then
     return wastedir(parent)
@@ -104,24 +109,12 @@ function dirname(str)
 end
 
 function delete()
-  -- get the current playing file
-  item = vlc.input.item()
-  -- extract its URI
-  uri = item:uri()
-  -- decode %foo stuff from the URI
-  filename = vlc.strings.decode_uri(uri)
-  -- remove 'file://' prefix which is 7 chars long
-  filename = string.sub(filename,8)
-
-  -- find .waste in parent dirs
-  wdir = wastedir(dirname(filename))
+  local filename,dst,wdir = filename_dst_wastedir()
   if(directory_exists(wdir)) then
-    basena = basename(filename)
-    dst = wdir .. "/" .. basena
     vlc.msg.dbg("[Wastebasket]: Move to " .. dst)
-    retval, err = os.rename(filename,dst)
+    local retval, err = os.rename(filename,dst)
     if(retval == nil) then
-      -- error handling; if deletion failed, print why
+      -- error handling; if moving failed, print why
       vlc.msg.dbg("[Wastebasket] error: " .. err)
     end
   else
