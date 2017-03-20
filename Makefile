@@ -1,4 +1,4 @@
-CMD = blink bsearch G histogram upsidedown tracefile timestamp rand rrm goodpasswd gitnext puniq ramusage ramusage
+CMD = blink bsearch G histogram upsidedown tracefile timestamp rand rclean rrm goodpasswd gitnext pdfman puniq ramusage ramusage
 
 all: blink/blink.1 bsearch/bsearch.1 G/G.1 goodpasswd/goodpasswd.1 histogram/histogram.1 puniq/puniq.1 rand/rand.1 rrm/rrm.1 timestamp/timestamp.1 tracefile/tracefile.1 upsidedown/upsidedown.1 wssh/wssh.1
 

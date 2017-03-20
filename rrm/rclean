@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 use Digest::MD5::File qw(dir_md5_hex file_md5_hex url_md5_hex);
+use Digest::SHA;
 
 my $dir = shift || ".";
 
@@ -18,13 +19,13 @@ while(<IN>) {
 }
 close IN;
 
-# Read md5sum of removed files of a given size
+# Read hash-value of removed files of a given size
 my %rrm;
 my $rrmfile = find_rrm_file(".") || ".rrm";
 open(RRM,"<",$rrmfile) || die;
 while(<RRM>) {
-    my($size,$md5,$file) = split /\t/,$_;
-    $rrm{0+$size}{$md5}++;
+    my($size,$hashval,$file) = split /\t/,$_;
+    $rrm{0+$size}{$hashval}++;
 }
 close RRM;
 
@@ -34,8 +35,11 @@ for my $size (keys %rrm) {
 	if(-e $file) {
 	    my $md5 = Digest::MD5->new;	
 	    $md5->addpath($file);
-	    # Do they have the same md5sum?
-	    if($rrm{$size}{$md5->hexdigest}) {
+	    my $sha = Digest::SHA->new(256);
+	    $sha->addfile($file);
+	    # Do they have the same hash-value?
+	    if($rrm{$size}{$md5->hexdigest} or
+	       $rrm{$size}{"SHA256:".$sha->b64digest}) {
 		# remove this
 		print "$file\n";
 	    }

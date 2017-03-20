@@ -31,44 +31,49 @@ Restore a backup containing I<IMG_2035.JPG>.
 
 B<rclean>
 
-B<rclean> will find B<IMG_2035.JPG> as it has the same size and MD5sum
+B<rclean> will find B<IMG_2035.JPG> as it has the same size and SHA256sum
 as an already removed file.
 
 
 =head1 FILES
 
-The file B<.rrm> contains the database of size, md5sum, and names of
+The file B<.rrm> contains the database of size, sha256sum, and names of
 the files. It is created in current directory if it cannot be found in
 any of the (grand*)parent directories.
 
 
 =head1 SEE ALSO
 
-B<rclean>(1), B<rm>(1), B<md5sum>(1)
+B<rclean>(1), B<rm>(1), B<sha256sum>(1)
 
 
 =cut
 
 
-use Digest::MD5::File qw(dir_md5_hex file_md5_hex url_md5_hex);
+use Digest::SHA;
 
 my %size;
-my %md5;
+my %hashval;
+my @remove;
 for my $file (@ARGV) {
     if(-s $file > 0) {
 	$size{$file} = -s $file;
-	my $md5 = Digest::MD5->new;
-	$md5->addpath($file);
-	$md5{$file} = $md5->hexdigest;
-    }    
+	my $sha = Digest::SHA->new(256);
+	$sha->addfile($file);
+	$hashval{$file} = "SHA256:".$sha->b64digest;
+	push @remove, $file;
+    }
+    if(not -e $file) {
+	warn("File does not exist: $file");
+    }
 }
 
 $rrmfile = find_rrm_file(".") || ".rrm";
 
 open(RRM,">>",$rrmfile) || die("Cannot write to $rrmfile.");
-print RRM map { $size{$_}."\t".$md5{$_}."\t".$_."\0\n" } @ARGV;
+print RRM map { $size{$_}."\t".$hashval{$_}."\t".$_."\0\n" } @remove;
 close RRM;
-unlink @ARGV;
+unlink @remove;
 
 sub find_rrm_file {
     my $dir = shift;
