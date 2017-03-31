@@ -14,9 +14,13 @@ G - short hand for multi level grep.
 
 gitnext - Checkout next revision. Opposite of 'checkout HEAD^'.
 
+gitundo - Undo last commit.
+
 neno - No error no output. Only print STDERR and STDOUT if the command fails.
 
 puniq - Print unique lines the first time they are seen.
+
+pdfman - Convert man page to pdf and display it using evince.
 
 rand - Generate (pseudo-)random data
 
