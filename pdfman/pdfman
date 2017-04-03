@@ -1,0 +1,120 @@
+#!/bin/bash
+
+: <<=cut
+=pod
+
+=head1 NAME
+
+pdfman - View man page as PDF
+
+
+=head1 SYNOPSIS
+
+B<pdfman> I<manentry>
+
+
+=head1 DESCRIPTION
+
+B<pdfman> uses B<man -t> to generate a PDF-version of the man page. It
+is then displayed using $PDFVIEWER.
+
+If $PDFVIEWER is unset, it tries B<okular>, B<evince>, and B<gv>.
+
+
+=head1 EXAMPLE
+
+Show man page for pdfman:
+
+  pdfman pdfman
+
+=head1 AUTHOR
+
+Copyright (C) 2017 Ole Tange,
+http://ole.tange.dk and Free Software Foundation, Inc.
+
+
+=head1 LICENSE
+
+Copyright (C) 2012 Free Software Foundation, Inc.
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+at your option any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 DEPENDENCIES
+
+B<pdfman> uses B<man> and B<ps2pdf>.
+
+
+=head1 SEE ALSO
+
+B<man>
+
+
+=cut
+
+
+dir=/tmp/pdfman-`echo $USER "$@" | md5sum|cut -d ' ' -f 1`
+pdf="$dir/$@"
+viewer=$PDFVIEWER
+
+if which okular >/dev/null; then
+    viewer=${viewer:-okular}
+fi
+if which evince >/dev/null; then
+    viewer=${viewer:-evince}
+fi
+if which gv >/dev/null; then
+    viewer=${viewer:-gv}
+fi
+
+cleanup() {
+    if [ "$noclean" == 1 ] ; then
+	true
+    else
+	rm $pdf
+	rmdir $dir
+    fi
+}
+
+control_c() {
+    echo -en "\n$0: CTRL-C hit: Exiting.\n" >&2
+    cleanup 2>/dev/null
+}
+
+pdfviewer() {
+    if [ "$noview" == 1 ] ; then
+	true
+    else
+	$viewer "$1"
+    fi
+}
+
+
+trap control_c SIGINT
+
+if [ -d "$dir" ] ; then
+    # PDF-viewer already running for this $pdf
+    # Assume it will re-read new file and do the cleanup
+    noclean=1
+    noview=1
+else
+    mkdir "$dir"
+fi
+
+
+man -w "$@" | parallel 'zcat {} || cat {}' 2>/dev/null |
+    # Convert -- to - and '' to "
+    (echo '.tr \--'; perl -pe "s/''|\`\`/\"\"/g;") |
+    man -tl - | ps2pdf - >$pdf && pdfviewer $pdf
+cleanup 2>/dev/null
