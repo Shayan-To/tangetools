@@ -20,6 +20,8 @@ is then displayed using $PDFVIEWER.
 
 If $PDFVIEWER is unset, it tries B<okular>, B<evince>, and B<gv>.
 
+If a viewer of the page is already running, a new viewer will not be
+started.
 
 =head1 EXAMPLE
 
