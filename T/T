@@ -1,0 +1,206 @@
+#!/bin/bash
+
+: <<=cut
+=encoding utf8
+
+=head1 NAME
+
+T - make temporary files
+
+
+=head1 SYNOPSIS
+
+B<T> [I<-#>] [I<filename>]
+
+
+=head1 DESCRIPTION
+
+B<T> can be used in 3 ways.
+
+=head2 End of a pipe - save to file
+
+If placed last in a pipe B<T> will take standard output from a command
+and save it in a temporary file.
+
+Equivalent to: B<cat> >B<tempfile>
+
+=head3 Example
+
+  cat file | T
+
+=head2 Start of a pipe - type the file
+
+If placed first in a pipe B<T> will type the last temporary file's
+contents to standard output.
+
+Equivalent to: B<cat tempfile>
+
+=head3 Example
+
+  T | cat 
+
+=head2 In the middle of a pipe - save and type the file
+
+If placed in the middle of a pipe B<T> will copy standard output from
+a command and save it in a temporary file and pass the standard output
+on.
+
+Equivalent to: B<tee tempfile>
+
+=head3 Example
+
+  cat | T | cat
+
+=head2 Relative .tmp dir
+
+B<T> will use B<$HOME/.tmp> if it cannot find a dir called B<.tmp> in
+any of the (grand*)parent dirs.
+
+
+=head1 OPTIONS
+
+=over 9
+
+=item I<filename>
+
+If given a filename B<T> saves info to that file in the .tmp-directory
+instead of tempfile
+
+=item -#
+
+If given option -# which # is a number T will use the #'th last
+version.
+
+=back
+
+=head1 FILES
+
+=over 5
+
+=item .tmp/tempfile or .tmp/I<filename>
+
+the most recent temporary file created
+
+=item .tmp/I<filename>-I<YYYY-MM-DD.hh:mm:ss-pid>
+
+the temporary file created at I<YYYY-MM-DD hh:mm:ss> with process id I<pid>
+
+=back
+
+
+=head1 AUTHOR
+
+Copyright (C) 2017 Ole Tange,
+http://ole.tange.dk and Free Software Foundation, Inc.
+
+
+=head1 LICENSE
+
+Copyright (C) 2012 Free Software Foundation, Inc.
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+at your option any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 SEE ALSO
+
+B<tee>(1), B<cat>(1)
+
+
+=cut
+
+find_tmp_dir() {
+    dir="$1"
+    if [ -d "$1"/.tmp ] ; then
+	echo "$1"/.tmp
+	return 0
+    else
+	if [ "/" == $(readlink -f "$dir") ]; then
+	    echo $HOME/.tmp
+	    return 0
+	fi
+	find_tmp_dir "../$dir"
+	return $?
+    fi
+}
+
+tmpdir="$(find_tmp_dir .)"
+mkdir -p "$tmpdir"
+
+T_DIR="$tmpdir"
+
+#DEBUG_LOG=/tmp/T-debug
+DEBUG_LOG=/dev/null
+
+if echo $1 | egrep '^-[0-9]+$' >/dev/null; then
+  T_BACK_NO=$(echo $1 | sed -e 's:-::')
+  shift
+  if [ -z "$1" ]; then
+    # No filename given. Default = tempfile
+    T_NO_SLASH=tempfile
+  else
+    # Map / to __ to avoid creating dirs in ~/.tmp
+    T_NO_SLASH=$(echo $1 | sed -e 's:/:__:g')
+  fi
+  T_TEMPFIL=$T_DIR/$T_NO_SLASH
+  T_BACK_FILENAME=$(find $T_DIR -name "$T_NO_SLASH"-'[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9].[0-9][0-9]:[0-9][0-9]:[0-9][0-9]-[0-9]*' \
+  | sort | tail -n $T_BACK_NO | head -n 1)
+  if [ -z "$T_BACK_FILENAME" ]; then
+    T_TEMPFIL=$T_DIR/$T_NO_SLASH
+  else
+    T_TEMPFIL=$T_BACK_FILENAME
+  fi
+else
+  if [ -z "$1" ]; then
+    # No filename given. Default = tempfile
+    T_TEMPFIL=$T_DIR/tempfile
+  else
+    # Map / to __ to avoid creating dirs in ~/.tmp
+    T_NO_SLASH=$(echo $1 | sed -e 's:/:__:g')
+    T_TEMPFIL=$T_DIR/$T_NO_SLASH
+  fi
+fi
+
+
+T_NY_FIL="$T_TEMPFIL"-`date +"%Y-%m-%d.%H:%M:%S"`-$$
+
+mkdir $T_DIR 2>/dev/null
+
+if tty -s ; then
+  # STDIN is terminal
+  # Don't care what STDOUT is
+  # T | cat         => T= cat file
+  # T               => T= cat file
+  echo cat "$T_TEMPFIL" >> $DEBUG_LOG
+  cat "$T_TEMPFIL"
+else
+  # STDIN redir'ed
+
+  if [ -t 1 ] ; then
+    # STDOUT = terminal
+    # cat | T       => T= >file
+    echo cat '>' "$T_NY_FIL" >> $DEBUG_LOG
+    cat > "$T_NY_FIL"
+  else
+    # STDOUT redir'ed
+    # cat | T | cat => T= tee file
+    echo tee "$T_NY_FIL" >> $DEBUG_LOG
+    tee "$T_NY_FIL"
+  fi
+
+  # Remove hardlink to most recent file
+  rm "$T_TEMPFIL" 2> /dev/null
+
+  # make a hardlink to the most recent file
+  ln "$T_NY_FIL" "$T_TEMPFIL"
+fi
