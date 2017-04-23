@@ -1,4 +1,4 @@
-CMD = blink bsearch G gitnext goodpasswd histogram neno	\
+CMD = blink bsearch em G gitnext goodpasswd histogram neno	\
 pdfman puniq ramusage rand rclean rn rrm T timestamp tracefile	\
 upsidedown wssh
 
