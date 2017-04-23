@@ -115,8 +115,11 @@ else
 fi
 
 
-man -w "$@" | parallel 'zcat {} || cat {}' 2>/dev/null |
+man -w "$@" |
+    parallel 'zcat {} || cat {}' 2>/dev/null |
     # Convert -- to - and '' to "
     (echo '.tr \--'; perl -pe "s/''|\`\`/\"\"/g;") |
-    man -tl - | ps2pdf - >$pdf && pdfviewer $pdf
+    man -tl - |
+    perl -pe "s/'/\\\\010/g" |
+    ps2pdf - >$pdf && pdfviewer $pdf
 cleanup 2>/dev/null
