@@ -6,9 +6,9 @@ tracefile - list files being accessed
 
 =head1 SYNOPSIS
 
-B<tracefile> [-adenu] I<command>
+B<tracefile> [-adefnu] I<command>
 
-B<tracefile> [-adenu] -p I<pid>
+B<tracefile> [-adefnu] -p I<pid>
 
 =head1 DESCRIPTION
 
@@ -42,6 +42,13 @@ List only dirs.
 =item B<--exist>
 
 List only existing files.
+
+
+=item B<-f>
+
+=item B<--file>
+
+List only files.
 
 
 =item B<-n>
@@ -81,7 +88,8 @@ know which one.
 Here B<ls> tries to find B</usr/include/shisa.h>. If it fails,
 B<apt-file> will search for which package it is in:
 
-    tracefile -n -u ls /usr/include/shisa.h | apt-file -f search -
+    tracefile -n -u ls /usr/include/shisa.h | apt-file -f search - |
+      grep /usr/include/shisa.h
 
 =head1 REPORTING BUGS
 
@@ -90,7 +98,7 @@ Report bugs to <tange@gnu.org>.
 
 =head1 AUTHOR
 
-Copyright (C) 2012,2016 Ole Tange, http://ole.tange.dk and Free
+Copyright (C) 2012,2016,2017 Ole Tange, http://ole.tange.dk and Free
 Software Foundation, Inc.
 
 
@@ -220,7 +228,7 @@ $Global::progname = "tracefile";
 Getopt::Long::Configure("bundling","pass_through");
 get_options_from_array(\@ARGV) || die_usage();
 
-if(not ($opt::exists or $opt::nonexists or $opt::all or $opt::dir)) {
+if(not ($opt::exists or $opt::nonexists or $opt::all or $opt::dir or $opt::file)) {
     $opt::all = 1;
 }
 
@@ -240,17 +248,16 @@ while(<IN>) {
 	my $file = shell_unquote($1);
 	# Relative to $dir
 	$file =~ s:^([^/]):$dir/$1:;
-	my $print = 0;
-	if($opt::all
+	my $print = 1;
+	if(($opt::dir and not -d $file)
 	   or
-	   ($opt::exists and -e $file)
+	   ($opt::file and not -f $file)
 	   or
-	   ($opt::dir and -d $file)
+	   ($opt::exists and not -e $file)
 	   or
-	   ($opt::nonexists and not -e $file)) {
-	    $print = 1;
-	}
-	if($opt::unique and $seen{$file}++) {
+	   ($opt::nonexists and -e $file)
+	   or
+	   ($opt::unique and $seen{$file}++)) {
 	    $print = 0;
 	}
 	$print and print $file,"\n";
@@ -262,6 +269,7 @@ sub options_hash {
     return
 	("debug|D" => \$opt::debug,
 	 "dir|d" => \$opt::dir,
+	 "file|f" => \$opt::file,
 	 "uniq|unique|u" => \$opt::unique,
          "exists|exist|e" => \$opt::exists,
          "nonexists|nonexist|non-exists|non-exist|n" => \$opt::nonexists,
