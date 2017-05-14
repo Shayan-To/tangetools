@@ -61,4 +61,8 @@ sudo kill $PID || sudo killall NetworkManager
 sleep 1
 sudo kill -9 $PID
 sudo NetworkManager &
-forever dmesg | puniq
+
+if tty -s ; then
+    # STDIN is terminal
+    forever dmesg | puniq
+fi
