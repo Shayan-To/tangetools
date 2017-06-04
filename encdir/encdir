@@ -1,0 +1,73 @@
+#!/bin/bash
+
+: <<=cut
+=pod
+
+=head1 NAME
+
+encdir - mount encfs dir or create it if missing
+
+
+=head1 SYNOPSIS
+
+B<encdir> I<dir>
+
+
+=head1 DESCRIPTION
+
+B<encdir> uses B<encfs> to mount I<dir>.enc on I<dir>.
+
+If I<dir> or I<dir>.enc do not exist then they will be created.
+
+=head1 EXAMPLE
+
+Mount mydir.enc on mydir:
+
+  encdir mydir
+
+=head1 AUTHOR
+
+Copyright (C) 2017 Ole Tange,
+http://ole.tange.dk and Free Software Foundation, Inc.
+
+
+=head1 LICENSE
+
+Copyright (C) 2012 Free Software Foundation, Inc.
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+at your option any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 DEPENDENCIES
+
+B<encdir> uses B<encfs>.
+
+
+=head1 SEE ALSO
+
+B<encfs>
+
+
+=cut
+
+
+if [ -z "$2" ] ; then
+  fusermount -u $1 2>/dev/null
+  encfs `readlink -f $1.enc` `readlink -f $1`  
+else
+  fusermount -u `readlink -f $2` 2>/dev/null
+  encfs `readlink -f $1` `readlink -f $2`  
+fi
+
+
