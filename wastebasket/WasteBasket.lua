@@ -83,6 +83,9 @@ end
 
 function directory_exists(dir)
   -- Simple checker if dir exists
+  -- shell quote the dirname
+  dir, _ = dir:gsub("([\002-\009\011-\026\\#?`(){}%[%]^*<>=~|; \"!$&'\130-\255])", "\\%1")
+  dir, _ = dir:gsub("\n", "'\n'")
   return os.execute("cd " .. dir)
 end
 

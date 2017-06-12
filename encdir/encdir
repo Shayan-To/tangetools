@@ -1,26 +1,29 @@
 #!/bin/bash
 
 : <<=cut
-=encoding utf8
+=pod
 
 =head1 NAME
 
-stdout - redirect standard error (stderr) to standard output (stdout)
+encdir - mount encfs dir or create it if missing
 
 
 =head1 SYNOPSIS
 
-B<stdout> I<command>
+B<encdir> I<dir>
 
 
 =head1 DESCRIPTION
 
-B<stdout> is a way to redirect all output to standard output (stdout).
+B<encdir> uses B<encfs> to mount I<dir>.enc on I<dir>.
 
-Normally you can use '2>&1' to do the same, but if the command needs
-to be quoted, it may be hard to get the quoting right. B<stdout> makes
-that unnecessary.
+If I<dir> or I<dir>.enc do not exist then they will be created.
 
+=head1 EXAMPLE
+
+Mount mydir.enc on mydir:
+
+  encdir mydir
 
 =head1 AUTHOR
 
@@ -46,11 +49,25 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+=head1 DEPENDENCIES
+
+B<encdir> uses B<encfs>.
+
+
 =head1 SEE ALSO
 
-B<bash>(1)
+B<encfs>
 
 
 =cut
 
-"$@" 2>&1
+
+if [ -z "$2" ] ; then
+  fusermount -u $1 2>/dev/null
+  encfs `readlink -f $1.enc` `readlink -f $1`  
+else
+  fusermount -u `readlink -f $2` 2>/dev/null
+  encfs `readlink -f $1` `readlink -f $2`  
+fi
+
+
