@@ -36,6 +36,8 @@ rn - Move file(s)/dir(s) to .rm/ (wastebasket).
 
 rrm - Record file's MD5 sum before removing it.
 
+sound-reload - Reload sound system
+
 stdout - Redirect both STDERR and STDOUT to STDOUT.
 
 T - tee stdout to and from temporary files.
@@ -49,5 +51,7 @@ upsidedown - flip input upside down.
 w4it-for-port-open - Block until the given port opens on a given host.
 
 wastebasket - VLC extension for moving current file to a wastebasket
+
+wifi-reload - Reload wifi drivers
 
 wssh - Shorthand for w4it-for-port-open $host 22; ssh $host

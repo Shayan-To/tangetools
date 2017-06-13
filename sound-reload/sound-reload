@@ -1,0 +1,78 @@
+#!/bin/bash
+
+: <<=cut
+=encoding utf8
+
+=head1 NAME
+
+sound-reload - reload sound setup
+
+
+=head1 SYNOPSIS
+
+B<sound-reload>
+
+
+=head1 DESCRIPTION
+
+Sometimes the sound config gets stuck. B<sound-reload> tries to get the
+config unstuck by reloading modules, and pulseaudio. 
+
+
+=head1 AUTHOR
+
+Copyright (C) 2017 Ole Tange,
+http://ole.tange.dk and Free Software Foundation, Inc.
+
+
+=head1 LICENSE
+
+Copyright (C) 2012 Free Software Foundation, Inc.
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+at your option any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 SEE ALSO
+
+B<bash>(1), B<pulseaudio>(1)
+
+
+=cut
+
+perl -i.bak -ne '/autospawn/ or print' ~/.pulse/client.conf
+echo autospawn=no >> ~/.pulse/client.conf
+pulseaudio -k
+modules="
+  snd_hda_intel
+  snd_hda_codec_hdmi
+  snd_hda_codec_analog
+  snd_hda_codec_generic
+  snd_hda_codec
+  snd_hda_core
+  snd_hwdep
+  snd_pcm
+  snd_seq_midi
+  snd_seq_midi_event
+  snd_rawmidi
+  snd_seq
+  snd_seq_device
+  snd_timer
+  snd
+  soundcore
+"
+sudo parallel --retries=10 modprobe -r ::: $modules
+lsmod|grep snd
+sudo parallel -j1 modprobe ::: $modules
+timeout 5 pulseaudio --log-level=3
+pulseaudio -D
