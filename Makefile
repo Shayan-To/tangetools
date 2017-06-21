@@ -1,9 +1,9 @@
 CMD = blink bsearch em encdir field forever G gitnext goodpasswd	\
-histogram neno off pdfman puniq ramusage rand rclean rn rrm		\
+histogram mtrr neno off pdfman puniq ramusage rand rclean rn rrm	\
 sound-reload stdout T timestamp tracefile upsidedown			\
-w4it-for-port-open wifi-reload wssh
+w4it-for-port-open wifi-reload wssh ytv
 
-all: blink/blink.1 bsearch/bsearch.1 encdir/encdir.1 G/G.1 gitnext/gitnext.1 goodpasswd/goodpasswd.1 histogram/histogram.1 neno/neno.1 off/off.1 pdfman/pdfman.1 puniq/puniq.1 rand/rand.1 rn/rn.1 rrm/rrm.1 sound-reload/sound-reload.1 stdout/stdout.1 timestamp/timestamp.1 tracefile/tracefile.1 T/T.1 upsidedown/upsidedown.1 wifi-reload/wifi-reload.1 wssh/wssh.1
+all: blink/blink.1 bsearch/bsearch.1 encdir/encdir.1 G/G.1 gitnext/gitnext.1 goodpasswd/goodpasswd.1 histogram/histogram.1 neno/neno.1 off/off.1 pdfman/pdfman.1 puniq/puniq.1 rand/rand.1 rn/rn.1 rrm/rrm.1 sound-reload/sound-reload.1 stdout/stdout.1 timestamp/timestamp.1 tracefile/tracefile.1 T/T.1 upsidedown/upsidedown.1 wifi-reload/wifi-reload.1 wssh/wssh.1 ytv/ytv.1
 
 %.1: %
 	pod2man $< > $@

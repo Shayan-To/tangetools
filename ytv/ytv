@@ -1,0 +1,105 @@
+#!/usr/bin/perl
+
+=pod
+
+=head1 NAME
+
+ytv - Start downloading youtube video and play it immediately
+
+
+=head1 SYNOPSIS
+
+B<ytv> I<youtube-url>
+
+
+=head1 DESCRIPTION
+
+B<ytv> starts B<youtube-dl> in the background. When the partial
+downloaded file exists, it is played by B<vlc>.
+
+=head1 AUTHOR
+
+Copyright (C) 2017 Ole Tange,
+http://ole.tange.dk and Free Software Foundation, Inc.
+
+
+=head1 LICENSE
+
+Copyright (C) 2012 Free Software Foundation, Inc.
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+at your option any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 DEPENDENCIES
+
+B<ytv> uses B<youtube-dl> and B<vlc>.
+
+
+=head1 SEE ALSO
+
+B<ytv>, B<vlc>
+
+
+=cut
+
+`mkdir -p ~/tmp/Videos`;
+chdir($ENV{'HOME'}."/tmp/Videos");
+for my $url (@ARGV) {
+    if(not fork()) {
+	# Download in the background
+	system(qw(youtube-dl -f best),$url);
+	exit;
+    }
+    # https://www.youtube.com/watch?v=ID
+    if($url =~ m{https://www.youtube.com/watch\?v=([^&]+)}) {
+	# Get the ID from the url
+	push @id,$1;
+	$id{$1}++;
+    } else {
+	print STDERR "$url not matched\n";
+    }
+}
+
+sub match_arr_regexp {
+    # Match any of @regexp
+    my ($regexp_arr,$content_arr) = @_;
+    # my $m;
+    # return map { $m = $_; grep { /$m/ } @$content_arr } @$regexp_arr;
+    my $regexp = join'|',map { "($_)" } @$regexp_arr;
+    return grep { /$regexp/ } @$content_arr;       
+}
+
+my (@ls,@files);
+
+do {
+    # Sleep until there are matching files
+    sleep(1);
+    @ls = <*>;
+    @files = match_arr_regexp(\@id,\@ls);
+} until @files;
+
+while(@files) {
+    # Run VLC on the matching files
+    system("vlc",@files);
+    # Remove regexps from @id
+    for my $id (@id) {
+	if(grep { /$id/ } @ls) {
+	    $id{$id} = 0;
+	}
+    }
+    @id = grep { $id{$_} } @id;
+    # See if there are new matches
+    @ls = <*>;
+    @files = match_arr_regexp(\@id,\@ls);
+}
