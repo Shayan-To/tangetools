@@ -64,5 +64,5 @@ sudo NetworkManager &
 
 if tty -s ; then
     # STDIN is terminal
-    forever dmesg | puniq
+    timeout 12 forever dmesg | puniq
 fi
