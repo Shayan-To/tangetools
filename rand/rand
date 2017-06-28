@@ -10,7 +10,7 @@ rand - Generate (pseudo-)random data
 
 =head1 SYNOPSIS
 
-B<rand>
+B<rand> [[I<from>] I<to>]
 
 
 =head1 DESCRIPTION
@@ -22,6 +22,10 @@ faster (400 MB/s on hardware from 2013).
 The quality is lower as there are only 2^256 different tables (this is
 still around the number of atoms in the visible universe).
 
+If I<to> is given, numbers will be integers from 0 to I<to>.
+
+If I<from> is also given, numbers will be integers from I<from> to I<to>.
+
 
 =head1 EXAMPLE
 
@@ -30,9 +34,16 @@ Overwrite a harddisk with random data:
   rand >/dev/sda
 
 
+=head1 EXAMPLE
+
+100 random numbers from 1000 to 1999:
+
+  rand 1000 1999 | head -n 100
+
+
 =head1 AUTHOR
 
-Copyright (C) 2016 Ole Tange,
+Copyright (C) 2017 Ole Tange,
 http://ole.tange.dk and Free Software Foundation, Inc.
 
 
@@ -74,5 +85,34 @@ randfunc() {
     < /dev/zero openssl enc -aes-128-ctr -K $key -iv $iv 2>/dev/null
 }
 export -f randfunc
-# Boost performance by running 1 per CPU core
-eval parallel -u randfunc ::: {1..$(parallel --number-of-cores)}
+
+ints() {
+    from=$1
+    to=$2
+    # Allow up to 2^64
+    perl -e '$diff='$to-$from'+1;
+        $factor = 2**64/$diff;
+        while(sysread(STDIN,$buf,65536)) {
+            print map { (int($_ / $factor) + '$from'),"\n" } unpack("Q*",$buf);
+        }'
+}
+export -f ints
+
+randints() {
+    randfunc | ints "$@"
+}
+export -f randints
+
+if [ "$1" == "" ] ; then
+    # Boost performance by running 1 per CPU core
+    eval parallel -u randfunc ::: {1..$(parallel --number-of-cores)}
+else
+    # $1 set => numerical
+    if [ "$2" == "" ] ; then
+	# 0 .. $1
+	eval parallel --lb randints 0 $1 ::: {1..$(parallel --number-of-cores)}
+    else
+	# $1 .. $2
+	eval parallel --lb randints $1 $2 ::: {1..$(parallel --number-of-cores)}
+    fi
+fi
