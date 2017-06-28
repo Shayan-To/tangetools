@@ -1,0 +1,143 @@
+#!/usr/bin/perl
+
+=pod
+
+=head1 NAME
+
+shython - Shebang wrapper for cython
+
+
+=head1 SYNOPSIS
+
+#!/usr/bin/shython
+
+python program
+
+=head1 DESCRIPTION
+
+B<shython> uses B<cython> to compile a python script into a C-file
+which is then compiled and run.
+
+It caches the compiled C-file in $XDG_CACHE_HOME/shython or
+$HOME/.cache/shython, and recompiles only if the source script has a
+newer timestamp.
+
+
+=head1 EXAMPLE
+
+  #!/usr/bin/shython
+
+  import sys
+  print "Hello world, ",sys.argv
+
+=head1 EXAMPLE: Shython in $PATH
+
+  #!/usr/bin/env shython
+
+  import sys
+  print "Hello world, ",sys.argv
+
+=head1 AUTHOR
+
+Copyright (C) 2017 Ole Tange,
+http://ole.tange.dk and Free Software Foundation, Inc.
+
+
+=head1 LICENSE
+
+Copyright (C) 2012 Free Software Foundation, Inc.
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+at your option any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 DEPENDENCIES
+
+B<shython> uses B<cython>, B<gcc>, and B<perl>.
+
+
+=head1 SEE ALSO
+
+B<cython>
+
+
+=cut
+
+use File::Path;
+
+my $pyfile = shift;
+
+my $cache_home = append_shython('XDG_CACHE_HOME') ||
+    $ENV{'HOME'}."/.cache/shython";
+my $cachefile = $cache_home."/".$pyfile;
+-d $cache_home or File::Path::mkpath($cache_home);
+if (not -e $cachefile
+    or
+    -M $cachefile > -M $pyfile) {
+    compile($pyfile,$cachefile);
+}
+# run
+system($cachefile,@ARGV);
+
+sub compile {
+    my $pyfile = shift;
+    my $cachefile = shift;
+    my $cython = (which("cython3","cython"))[0];
+    my $cfile = $cachefile.".tmp";
+    $cfile =~ s/(.py.?)?$/.c/;
+    # cython3 --embed -o hello.c hello.py
+    system($cython,"--embed","-o",$cfile,$pyfile);
+    my @installed_lib;
+    my @installed_inc;
+    for my $inc (</usr/include/python*>,</usr/local/include/python*>) {
+	my $ver = $inc;
+	$ver =~ s:.*/::;
+	for my $lib (qw(/lib64 /lib /lib/x86_64-linux-gnu
+		     /usr/lib/gcc/x86_64-linux-gnu/6 /usr/lib
+		     /usr/lib/x86_64-linux-gnu /usr/local/lib)) {
+	    if(-e "$lib/lib$ver.so" and -e "$lib/lib$ver.a") {
+		push @installed_lib,$ver;
+		push @installed_inc,$inc;
+	    }
+	}
+    }
+    my $inc = (reverse sort @installed_inc)[0];
+    my $lib = (reverse sort @installed_lib)[0];
+    
+    system("gcc","-Os","-I",$inc,"-o",$cachefile,$cfile,"-l$lib","-lpthread","-lm","-lutil","-ldl");
+    unlink $cfile;
+}
+
+sub which {
+    # Input:
+    #   @programs = programs to find the path to
+    # Returns:
+    #   @full_path = full paths to @programs. Nothing if not found
+    my @which;
+    for my $prg (@_) {
+	push(@which, grep { not -d $_ and -x $_ }
+	     map { $_."/".$prg } split(":",$ENV{'PATH'}));
+    }
+    return @which;
+}
+
+sub append_shython {
+    my $v = shift;
+    if($ENV{$v}) {
+	return(map { "$_/shython" }
+	       grep { -d $_ }
+	       split /:/, $ENV{$v});
+    } else {
+	return "";
+    }
+}

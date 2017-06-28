@@ -40,9 +40,13 @@ rn - Move file(s)/dir(s) to .rm/ (wastebasket).
 
 rrm - Record file's MD5 sum before removing it.
 
+shython - Shebang wrapper for cython.
+
 sound-reload - Reload sound system.
 
 stdout - Redirect both STDERR and STDOUT to STDOUT.
+
+swapout - Force swapping out.
 
 T - tee stdout to and from temporary files.
 
