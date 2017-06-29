@@ -55,51 +55,27 @@ B<ytv>, B<vlc>
 
 `mkdir -p ~/tmp/Videos`;
 chdir($ENV{'HOME'}."/tmp/Videos");
+map { $before{$_} = -M $_ } <*>;
 for my $url (@ARGV) {
     if(not fork()) {
 	# Download in the background
 	system(qw(youtube-dl -f best),$url);
 	exit;
     }
-    # https://www.youtube.com/watch?v=ID
-    if($url =~ m{https://www.youtube.com/watch\?v=([^&]+)}) {
-	# Get the ID from the url
-	push @id,$1;
-	$id{$1}++;
-    } else {
-	print STDERR "$url not matched\n";
-    }
 }
 
-sub match_arr_regexp {
-    # Match any of @regexp
-    my ($regexp_arr,$content_arr) = @_;
-    # my $m;
-    # return map { $m = $_; grep { /$m/ } @$content_arr } @$regexp_arr;
-    my $regexp = join'|',map { "($_)" } @$regexp_arr;
-    return grep { /$regexp/ } @$content_arr;       
-}
-
-my (@ls,@files);
+$SIG{'CHLD'} = sub { exit; };
 
 do {
     # Sleep until there are matching files
     sleep(1);
-    @ls = <*>;
-    @files = match_arr_regexp(\@id,\@ls);
-} until @files;
+    @new = grep { not $before{$_} or $before{$_} > -M $_ } <*>;
+} until @new;
 
-while(@files) {
+while(@new) {
+    # Mark as seen
+    map { $before{$_} = -M $_ } @new;
     # Run VLC on the matching files
-    system("vlc",@files);
-    # Remove regexps from @id
-    for my $id (@id) {
-	if(grep { /$id/ } @ls) {
-	    $id{$id} = 0;
-	}
-    }
-    @id = grep { $id{$_} } @id;
-    # See if there are new matches
-    @ls = <*>;
-    @files = match_arr_regexp(\@id,\@ls);
+    system("vlc",@new);
+    @new = grep { not $before{$_} or $before{$_} > -M $_ } <*>;
 }
