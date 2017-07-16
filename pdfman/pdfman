@@ -117,6 +117,11 @@ fi
 
 man -w "$@" |
     parallel 'zcat {} || cat {}' 2>/dev/null |
+    # Convert ˆ to ^
+    #   remove lines like: .    ds ^ \&
+    perl -ne '/^\s*\.\s*ds\s+\S*\^/ or print' |
+    #   replace ^ with \(ha
+    sed 's/\^/\\(ha/g' |
     # Convert -- to - and '' to "
     (echo '.tr \--'; perl -pe "s/''|\`\`/\"\"/g;") |
     man -tl - |
