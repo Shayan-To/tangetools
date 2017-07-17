@@ -38,6 +38,8 @@ rclean - Remove files with MD5 sums recorded by rrm (see below).
 
 reniced - Renice all commands running more than 1 CPU minute unless they are niced or whitelisted.
 
+rina - Run if no activity.
+
 rn - Move file(s)/dir(s) to .rm/ (wastebasket).
 
 rrm - Record file's MD5 sum before removing it.

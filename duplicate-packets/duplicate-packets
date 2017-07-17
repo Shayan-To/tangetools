@@ -1,5 +1,7 @@
 #!/bin/bash
 
 IF=wls1
-sudo tc qdisc del dev $IF root netem delay 300 duplicate 40
-sudo tc qdisc add dev $IF root netem delay 300 duplicate 40
+sudo tc qdisc del dev $IF root netem duplicate 50
+sudo tc qdisc add dev $IF root netem duplicate 50
+#sudo tc qdisc del dev $IF root netem duplicate 100% delay 300ms
+#sudo tc qdisc add dev $IF root netem duplicate 100% delay 300ms

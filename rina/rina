@@ -1,0 +1,173 @@
+#!/usr/bin/perl
+
+=pod
+
+=head1 NAME
+
+rina - run if no activity
+
+
+=head1 SYNOPSIS
+
+... | B<rina> [-v] [-t timeout] I<command>
+
+
+=head1 OPTIONS
+
+=over 9
+
+=item B<-v>
+
+Verbose. Print when I<command> is run.
+
+=back
+
+
+=head1 DESCRIPTION
+
+B<rina> monitors a pipe. If there is no activity on the pipe for
+I<timeout> seconds, it runs I<command>.
+
+
+=head1 EXAMPLE
+
+Restart networking if Google's DNS does not repond to ping:
+
+  ping 8.8.8.8 | rina -t 20 /etc/init.d/networking restart
+
+=head1 AUTHOR
+
+Copyright (C) 2017 Ole Tange,
+http://ole.tange.dk and Free Software Foundation, Inc.
+
+
+=head1 LICENSE
+
+Copyright (C) 2012 Free Software Foundation, Inc.
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+at your option any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 DEPENDENCIES
+
+B<rina> uses B<perl>.
+
+
+=head1 SEE ALSO
+
+B<perl>
+
+
+=cut
+
+use Getopt::Long;
+use Time::HiRes;
+use POSIX qw(strftime);
+
+get_options_from_array(\@ARGV);
+
+my $in_fh = *STDIN;
+
+set_fh_non_blocking($in_fh);
+while(1){
+    sleep($opt::timeout || 10);
+    if(not read($in_fh,$dummy,32768)) {
+	# run_command
+	@opt::verbose and print iso8601(Time::HiRes::time())," Running @ARGV\n";
+	system(@ARGV);
+	wait();
+	@opt::verbose and print iso8601(Time::HiRes::time())," Done @ARGV\n";
+    }
+    # empty_buffer
+    while(read($in_fh,$dummy,32768)) { }
+}
+
+sub iso8601 {
+    my $time = shift;
+    my $tz = strftime("%z", localtime($time));
+    $tz =~ s/(\d{2})(\d{2})/$1:$2/;
+    my $ms = sprintf "%03d", int(($time - int($time))*1000);
+
+    return strftime("%Y-%m-%dT%H:%M:%S.".$ms, localtime($time)). $tz;
+}
+
+sub set_fh_non_blocking {
+    # Set filehandle as non-blocking
+    # Inputs:
+    #   $fh = filehandle to be blocking
+    # Returns:
+    #   N/A
+    my $fh = shift;
+    $Global::use{"Fcntl"} ||= eval "use Fcntl qw(:DEFAULT :flock); 1;";
+    my $flags;
+    # Get the current flags on the filehandle
+    fcntl($fh, &F_GETFL, $flags) || die $!;
+    # Add non-blocking to the flags
+    $flags |= &O_NONBLOCK;
+    # Set the flags on the filehandle
+    fcntl($fh, &F_SETFL, $flags) || die $!;
+}
+
+sub options_hash {
+    # Returns:
+    #   %hash = the GetOptions config
+    return
+	("debug|D=s" => \$opt::D,
+	 "verbose|v" => \@opt::verbose,
+	 "timeout|t=s" => \$opt::timeout,
+	);
+}
+
+sub get_options_from_array {
+    # Run GetOptions on @array
+    # Input:
+    #   $array_ref = ref to @ARGV to parse
+    #   @keep_only = Keep only these options
+    # Uses:
+    #   @ARGV
+    # Returns:
+    #   true if parsing worked
+    #   false if parsing failed
+    #   @$array_ref is changed
+    my ($array_ref, @keep_only) = @_;
+    if(not @$array_ref) {
+	# Empty array: No need to look more at that
+	return 1;
+    }
+    # A bit of shuffling of @ARGV needed as GetOptionsFromArray is not
+    # supported everywhere
+    my @save_argv;
+    my $this_is_ARGV = (\@::ARGV == $array_ref);
+    if(not $this_is_ARGV) {
+	@save_argv = @::ARGV;
+	@::ARGV = @{$array_ref};
+    }
+    # If @keep_only set: Ignore all values except @keep_only
+    my %options = options_hash();
+    if(@keep_only) {
+	my (%keep,@dummy);
+	@keep{@keep_only} = @keep_only;
+	for my $k (grep { not $keep{$_} } keys %options) {
+	    # Store the value of the option in @dummy
+	    $options{$k} = \@dummy;
+	}
+    }
+    my $retval = GetOptions(%options);
+    if(not $this_is_ARGV) {
+	@{$array_ref} = @::ARGV;
+	@::ARGV = @save_argv;
+    }
+    return $retval;
+}
+
