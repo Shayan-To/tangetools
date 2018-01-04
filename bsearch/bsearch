@@ -83,7 +83,7 @@ sort via a key; KEYDEF gives location and type
 
 compare according to string numerical value
 
-=item B<--random-sort> (not implemented)
+=item B<--random-sort>
 
 =item B<-R>
 
@@ -106,7 +106,7 @@ B<-M>, numeric B<-n>, random B<-R>, version B<-V>
 
 use SEP instead of non-blank to blank transition
 
-=item B<-z> (not implemented)
+=item B<-z>
 
 =item B<--zero-terminated>
 
@@ -264,6 +264,7 @@ GetOptions(
     "h|human-numeric-sort" => \$opt::human_numeric_sort,
     "n|numeric-sort" => \$opt::numeric_sort,
     "r|reverse" => \$opt::reverse,
+    "R|random-sort" => \$opt::random_sort,
     "sort=s" => \$opt::sort,
     "V|version-sort" => \$opt::version_sort,
     "k|key=s" => \@opt::key,
@@ -327,6 +328,9 @@ sub bsearch {
 
 sub compare {
     my ($a,$b) = @_;
+    if($opt::random_sort) {
+	return rand() <=> rand();
+    }
     if($opt::reverse) {
 	($a,$b) = ($b,$a);
     }
