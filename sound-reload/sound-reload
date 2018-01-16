@@ -53,6 +53,7 @@ B<bash>(1), B<pulseaudio>(1)
 perl -i.bak -ne '/autospawn/ or print' ~/.pulse/client.conf
 echo autospawn=no >> ~/.pulse/client.conf
 pulseaudio -k
+fuser -kv /dev/snd/*
 modules="
   snd_hda_intel
   snd_hda_codec_hdmi

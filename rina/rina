@@ -75,20 +75,53 @@ use Getopt::Long;
 use Time::HiRes;
 use POSIX qw(strftime);
 
+Getopt::Long::Configure("bundling","require_order");
 get_options_from_array(\@ARGV);
 
 my $in_fh = *STDIN;
+$|=1;
 
 set_fh_non_blocking($in_fh);
-while(1){
-    sleep($opt::timeout || 10);
-    if(not read($in_fh,$dummy,32768)) {
+
+while(1) {
+    my $newline = "";
+    my $t;
+    sleep(1);
+    if(read($in_fh,$dummy,32768)) { next; }
+    for($t = $opt::timeout || 10; $t; $t--) {
+	sleep(1);
+	if(read($in_fh,$dummy,32768)) { last; }
+	$newline = "\n";
+	@opt::verbose and print "$t ";
+    }
+    @opt::verbose and print $newline;
+    if(not $t) {
 	# run_command
 	@opt::verbose and print iso8601(Time::HiRes::time())," Running @ARGV\n";
 	system(@ARGV);
 	wait();
 	@opt::verbose and print iso8601(Time::HiRes::time())," Done @ARGV\n";
     }
+    while(read($in_fh,$dummy,32768)) { }
+}
+
+while(1){
+    my $t = $opt::timeout || 10;
+    my $newline = "";
+    sleep(1);
+    if(not read($in_fh,$dummy,32768)) {
+	$newline = "\n";
+	@opt::verbose and print "$t";
+	if(not $t--) {
+	    # run_command
+	    @opt::verbose and print $newline;
+	    @opt::verbose and print iso8601(Time::HiRes::time())," Running @ARGV\n";
+	    system(@ARGV);
+	    wait();
+	    @opt::verbose and print iso8601(Time::HiRes::time())," Done @ARGV\n";
+	}
+    }
+    @opt::verbose and print $newline;
     # empty_buffer
     while(read($in_fh,$dummy,32768)) { }
 }

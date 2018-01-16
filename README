@@ -22,6 +22,8 @@ gitundo - Undo commit.
 
 histogram - make and display a histogram on the command line.
 
+mirrorpdf - mirror PDF-file horizontally.
+
 neno - No error no output. Only print STDERR and STDOUT if the command fails.
 
 off - Turn off monitor.
