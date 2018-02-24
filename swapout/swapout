@@ -2,20 +2,33 @@
 
 $timeout = shift || 10;
 
-$total=10000000;
-
 my $giga=2**30;
 my $forks=1;
 
+my $free;
+
+my $memtotal = int(
+	qx{ awk '/^(MemTotal):/ { sum += \$2} END { print sum }' /proc/meminfo }
+    / 1024);
+
+$total = 1;
+$onemb = "x"x1048576;
 do{
-    $start=time;
-    $total=int(1+$total*1.03);
-    $missing=$total-$sofar;
-    $buf{$forks}{$total}="x"x$missing;
-    $sofar=$total;
-    $timediff=time-$start;
+    $start = time;
+    $free = int (
+	qx{ awk '/^((Swap)?Cached|MemFree|Buffers):/ { sum += \$2} END { print sum }' /proc/meminfo }
+	/ 1024);
+    print "Free $free ";
+    $total += int($free/100);
+    $missing = $total - $sofar;
+    for(1..$missing) {
+	$buf{$forks}{$total}{$_} = $onemb;
+    }
+    $sofar = $total;
+    $timediff = time - $start;
+
     print "Chunk size: $missing Time for swapping: $timediff seconds. Total memory used: $total\n";
-    if($total > $forks * $giga) {
+    if($total * 1048576 > $forks * $giga) {
 	if($pid=fork()) {
 	    print "child spawn ",$forks,"\n";
 	    wait;
@@ -25,5 +38,5 @@ do{
 	    $forks++;
 	}
     }
-} until ($pid or $timediff>$timeout);
+} until ($pid or $timediff>$timeout or $total > $memtotal);
 print "exit ",$forks,"\n";
