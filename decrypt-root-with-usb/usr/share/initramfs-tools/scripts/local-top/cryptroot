@@ -193,15 +193,18 @@ setup_mapping()
 
 	if [ -z "$cryptkeyscript" ]; then
                 # Test all devices
-                mkdir /mnt
-                echo -n "Searching for cryptkey.txt on available disks... "
+                mkdir -p /tmp/mnt
+                echo "Searching for cryptkey.txt on available disks... "
                 for partition in `cat /proc/partitions |awk '{print $4}'|tail -n +3`; do
-                    if mount /dev/$partition /mnt 2>/dev/null; then
-                        cat /mnt/cryptkey.txt >> /tmp/cryptkeys.txt 2>/dev/null
+		    echo Trying /dev/$partition
+                    if mount /dev/$partition /tmp/mnt 2>/dev/null; then
+                        if cat /tmp/mnt/cryptkey.txt >> /tmp/cryptkeys.txt 2>/dev/null; then
+			    echo "Found keys on /dev/$partition"
+			fi
                         umount /dev/$partition
                     fi
                 done
-                echo "done."
+                echo "Done searching."
 
 		if [ ${cryptsource#/dev/disk/by-uuid/} != $cryptsource ]; then
 			# UUIDs are not very helpful
@@ -335,6 +338,7 @@ setup_mapping()
                         rm /tmp/cryptkeys.txt
                         unset key
                     fi
+		    echo Keyfound = "$keyfound"
                     if [ "$keyfound" = "0" ]; then
                         # Fall back to manual entry
 			if ! crypttarget="$crypttarget" cryptsource="$cryptsource" \

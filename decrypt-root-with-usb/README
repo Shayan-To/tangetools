@@ -33,6 +33,7 @@ your initramfs, you need to add them by adding to
     usb_storage
     nls_utf8
     nls_cp437
+    nls_ascii
     vfat
     fat
     sd_mod
