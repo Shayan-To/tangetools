@@ -1,0 +1,49 @@
+It would be ideal to me if I could simply have a small USB stick
+containing a passphrase that will unlock the disk. Not only would that
+be handy for servers (where you could leave the USB stick in the
+server - the goal is to be able to return broken harddisks without
+having to worry about confidential data), it would also be great for
+my laptop: Insert the USB stick when booting and remove it after
+unlocking the cryptodisk.
+
+I have now written a patch that will search the root dir of all
+devices for the file 'cryptkey.txt' and try decrypting with each line
+as a key. If that fails: Revert to typing in the pass phrase.
+
+It does mean the key cannot contain \n, but that would apply to any
+typed in key, too. The good part is that you can use the same USB disk
+to store the key for multiple machines: You do not need a separate USB
+disk for each. So if you have a USB drive in your physical key ring,
+you can use the same drive for all the machines you boot when being
+physically close.
+
+You add the key with:
+
+    cryptsetup luksAddKey /dev/sda5
+
+And then put the same key as a line in a file on the USB/MMC disk
+called 'cryptkey.txt'.
+
+If the USB drivers, MMC drivers or the filesystems are not present in
+your initramfs, you need to add them by adding to
+/etc/initramfs-tools/modules:
+
+    uhci_hcd
+    ehci_hcd
+    usb_storage
+    nls_utf8
+    nls_cp437
+    vfat
+    fat
+    sd_mod
+    mmc_block
+    tifm_sd
+    tifm_core
+    mmc_core
+    tifm_7xx1
+    sdhci
+    sdhci_pci
+
+When all is done, update the initramfs:
+
+    update-initramfs -u

@@ -6,6 +6,8 @@ blink - blink disks in a disk enclosure
        
 bsearch - binary search through sorted text files.
 
+decrypt-root-with-usb - Patch for cryptroot to decrypt root with key on USB.
+
 duplicate-packets - Duplicate packets on an interface. Useful if wifi is bad.
 
 em - Force emacs to run in terminal. Use xemacs if installed.
