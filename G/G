@@ -71,5 +71,37 @@ while(@ARGV) {
     }
 }
 
-exec join"|", map { "grep @$_" } @cmd;
+exec join"|", map { "grep ".join(" ", shell_quote(@$_)) } @cmd;
 
+sub shell_quote {
+    # Input:
+    #   @strings = strings to be quoted
+    # Output:
+    #   @shell_quoted_strings = string quoted with \ as needed by the shell
+    return wantarray ?
+	(map { shell_quote_scalar($_) } @_)
+	: (join" ",map { shell_quote_scalar($_) } @_);
+}
+
+sub shell_quote_scalar {
+    # Quote for other shells
+    my $a = $_[0];
+    if(defined $a) {
+	# zsh wants '=' quoted
+	# Solaris sh wants ^ quoted.
+	# $a =~ s/([\002-\011\013-\032\\\#\?\`\(\)\{\}\[\]\^\*\>\<\~\|\; \"\!\$\&\'\202-\377])/\\$1/g;
+	# This is 1% faster than the above
+	if(($a =~ s/[\002-\011\013-\032\\\#\?\`\(\)\{\}\[\]\^\*\<\=\>\~\|\; \"\!\$\&\'\202-\377]/\\$&/go)
+	   +
+	   # quote newline as '\n'
+	   ($a =~ s/[\n]/'\n'/go)) {
+	    # A string was replaced
+	    # No need to test for "" or \0
+	} elsif($a eq "") {
+	    $a = "''";
+	} elsif($a eq "\0") {
+	    $a = "";
+	}
+    }
+    return $a;
+}
