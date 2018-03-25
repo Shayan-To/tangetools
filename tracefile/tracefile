@@ -225,7 +225,7 @@ use Getopt::Long;
 
 $Global::progname = "tracefile";
 
-Getopt::Long::Configure("bundling","pass_through");
+Getopt::Long::Configure("bundling","require_order");
 get_options_from_array(\@ARGV) || die_usage();
 
 if(not ($opt::exists or $opt::nonexists or $opt::all or $opt::dir or $opt::file)) {
