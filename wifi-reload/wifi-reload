@@ -70,7 +70,7 @@ if tty -s ; then
     #    timeout 12 forever dmesg | puniq
 fi
 
-sudo bash -c 'cat >> /etc/resolv.conf' < /etc/resolvconf/resolv.conf.d/head 
-sudo iwconfig wls1 essid Turris
-sudo dhclient wls1 &
-sudo wpa_supplicant -Dwext -c/etc/wpa_supplicant.conf -iwls1 -d &
+#sudo bash -c 'cat >> /etc/resolv.conf' < /etc/resolvconf/resolv.conf.d/head 
+#sudo iwconfig wls1 essid Turris
+#sudo dhclient wls1 &
+#sudo wpa_supplicant -Dwext -c/etc/wpa_supplicant.conf -iwls1 -d &

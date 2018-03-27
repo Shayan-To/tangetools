@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# Download tree-of-life.jpg
+# from http://www.open.edu/openlearn/nature-environment/natural-history/tree-life
+
+base=www2.open.ac.uk/openlearn/treeoflife/treeOfLifePoster/TileGroup
+parallel -j30 wget -c $base{3}/6-{1}-{2}.jpg ::: {0..28} ::: {4..42} ::: {1..7}
+parallel eval convert +append 6-{0..28}-{}.jpg line{}.jpg ::: {4..42}
+convert -append line{4..42}.jpg tree-of-life.jpg
+
+echo Cleanup with
+echo rm line*.jpg 6-*-*.jpg
