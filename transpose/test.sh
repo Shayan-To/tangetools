@@ -37,21 +37,21 @@ dotest() {
 }
 
 . `which env_parallel.bash`
-env_parallel -r <<EOF
+env_parallel -r <<'EOF'
+dotest /tmp/table-3,1000000.csv
+dotest /tmp/table-3,10000000.csv
+dotest /tmp/table-1000,100000.csv
 # Test --block 1 (problem with GNU Parallel < 20180422)
 dotest /tmp/table-3,1000.csv -b 1
+dotest /tmp/table-3\|1000.csv
 dotest /tmp/table-3,1000.csv
 dotest /tmp/table-3,10000.csv
 dotest /tmp/table-3,100000.csv
-dotest /tmp/table-3,1000000.csv
-dotest /tmp/table-3,10000000.csv
 
-dotest '/tmp/table-10\\t20.csv'
+dotest '/tmp/table-10\t20.csv'
 dotest /tmp/table-10';'20.csv
-dotest '/tmp/table-100\\t200.csv'
+dotest '/tmp/table-100\t200.csv'
 dotest /tmp/table-1,100.csv
 dotest /tmp/table-10,1000.csv
 dotest /tmp/table-100,10000.csv
-dotest /tmp/table-1000,100000.csv
 EOF
-

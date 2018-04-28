@@ -262,10 +262,21 @@ file_to_paste_files() {
 
 super_paste() {
     # Like 'paste' up to 1000000 files
+    # More than 250000 files requires extra filehandles for GNU Parallel
     # The files are read from stdin
     local sep
     local paste_files
     local fifo
+
+other_commands() {
+    printf "\rSIGINT caught      "
+    ls -l $paste_files
+    cat $paste_files | parallel "eval rm -f {} $fifo{0#}"
+    rm $paste_files
+}
+
+    trap 'other_commands' SIGINT
+
     sep="$1"
     paste_files=`tempfile`
     # basename
@@ -305,40 +316,44 @@ usage() {
     echo "Usage: $0 [-d delimiter] [-b blocksize]" 1>&2; exit 1;
 }
 
-block_size=10M
-while getopts ":b:d:" o; do
-    case "${o}" in
-	d)
-	    d="$(printf "${OPTARG}")"
-	    if [ "'" = "${d}" ] ; then
-		echo "Delimiter cannot be '"
+main() {
+    block_size=10M
+    while getopts ":b:d:" o; do
+	case "${o}" in
+	    d)
+		d="$(printf "${OPTARG}")"
+		if [ "'" = "${d}" ] ; then
+		    echo "Delimiter cannot be '"
+		    usage
+		    exit
+		fi
+		;;
+	    b)
+		block_size="${OPTARG}"
+		;;
+	    *)
 		usage
-		exit
-	    fi
-	    ;;
-	b)
-	    block_size="${OPTARG}"
-	    ;;
-	*)
-	    usage
-	    ;;
-    esac
-done
-shift $((OPTIND-1))
+		;;
+	esac
+    done
+    shift $((OPTIND-1))
 
-if [ -z "${d}" ] ; then
-    d="$(printf "\t")"
-fi
+    if [ -z "${d}" ] ; then
+	d="$(printf "\t")"
+    fi
 
-# Sep cannot be '
-file="$@"
-first_lines=`tempfile`
-if [ -z "$file" ]; then
-    sep="$(stdin_detect_sep $first_lines)"
-    (cat $first_lines; rm $first_lines; cat) |
-	stdin_to_paste_files $block_size "$sep" | super_paste "$sep"
-else
-    sep="$(stdin_detect_sep < "$file" $first_lines)"
-    rm $first_lines
-    file_to_paste_files $block_size "$sep" "$file" | super_paste "$sep"
-fi
+    file="$@"
+    first_lines=`tempfile`
+    if [ -z "$file" ]; then
+	sep="$(stdin_detect_sep $first_lines)"
+	(cat $first_lines; rm $first_lines; cat) |
+	    stdin_to_paste_files $block_size "$sep" | super_paste "$sep"
+    else
+	sep="$(stdin_detect_sep < "$file" $first_lines)"
+	rm $first_lines
+	file_to_paste_files $block_size "$sep" "$file" | super_paste "$sep"
+    fi
+}
+
+# Make sure the whole file is read before starting
+main "$@"

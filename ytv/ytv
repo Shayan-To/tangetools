@@ -69,13 +69,14 @@ $SIG{'CHLD'} = sub { exit; };
 do {
     # Sleep until there are matching files
     sleep(1);
-    @new = grep { not $before{$_} or $before{$_} > -M $_ } <*>;
+    @new = (grep { -s $_ > 1000000 }
+	    grep { not $before{$_} or $before{$_} > -M $_ } <*>);
 } until @new;
 
 while(@new) {
     # Mark as seen
     map { $before{$_} = -M $_ } @new;
     # Run VLC on the matching files
-    system("vlc",@new);
+    system("vlc", map { $a=$_; s/.part//; $a,$_ } @new);
     @new = grep { not $before{$_} or $before{$_} > -M $_ } <*>;
 }

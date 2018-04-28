@@ -71,7 +71,11 @@ while(@ARGV) {
     }
 }
 
-exec join"|", map { "grep ".join(" ", shell_quote(@$_)) } @cmd;
+if(@cmd) {
+    exec join"|", map { "grep ".join(" ", shell_quote(@$_)) } @cmd;
+} else {
+    exec 'cat';
+}
 
 sub shell_quote {
     # Input:

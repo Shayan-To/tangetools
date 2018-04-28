@@ -7,7 +7,8 @@ INSTALLATION (create directories if they donot exist):
 * Linux (current user): ~/.local/share/vlc/lua/extensions/
 * Mac OS X (all users): /Applications/VLC.app/Contents/MacOS/share/lua/extensions/
 - Restart VLC.
-- The extension can then be found in the menu View > Wastebasket.
+- The extension can then be found in the menu:
+    View > Move current playing file into wastebasket
 ]]--
 
 --[[ Extension description ]]
