@@ -6,72 +6,74 @@ blink - blink disks in a disk enclosure
        
 bsearch - binary search through sorted text files.
 
-decrypt-root-with-usb - Patch for cryptroot to decrypt root with key on USB.
+decrypt-root-with-usb - patch for cryptroot to decrypt root with key on USB.
 
-duplicate-packets - Duplicate packets on an interface. Useful if wifi is bad.
+duplicate-packets - duplicate packets on an interface. Useful if wifi is bad.
 
-em - Force emacs to run in terminal. Use xemacs if installed.
+em - force emacs to run in terminal. Use xemacs if installed.
 
-field - Split on space. Give the given field number. Supports syntax 1-3,6-
+field - split on whitespace. Give the given field number. Supports syntax 1-3,6-
 
-forever - Run the same command or list of commands every second.
+forever - run the same command or list of commands every second.
 
 G - shorthand for multi level grep.
 
-gitnext - Checkout next revision. Opposite of 'checkout HEAD^'.
+gitnext - checkout next revision. Opposite of 'checkout HEAD^'.
 
-gitundo - Undo commit.
+gitundo - undo commit.
 
 histogram - make and display a histogram on the command line.
 
 mirrorpdf - mirror PDF-file horizontally.
 
-neno - No error no output. Only print STDERR and STDOUT if the command fails.
+neno - no error no output. Only print STDERR and STDOUT if the command fails.
 
-off - Turn off monitor.
+off - turn off monitor.
 
-pdfman - Convert man page to pdf and display it using evince.
+pdfman - convert man page to pdf and display it using evince.
 
-puniq - Print unique lines the first time they are seen.
+puniq - print unique lines the first time they are seen.
 
-ramusage - Display the ram usage of a program using `time -v`.
+ramusage - display the ram usage of a program using `time -v`.
 
-rand - Generate (pseudo-)random data.
+rand - generate (pseudo-)random data.
 
-rclean - Remove files with MD5 sums recorded by rrm (see below).
+rclean - remove files with MD5 sums recorded by rrm (see below).
 
-reniced - Renice all commands running more than 1 CPU minute unless they are niced or whitelisted.
+reniced - renice all commands running more than 1 CPU minute unless they are niced or whitelisted.
 
-rina - Run if no activity.
+rina - run if no activity.
 
-rn - Move file(s)/dir(s) to .rm/ (wastebasket).
+rn - move file(s)/dir(s) to .rm/ (wastebasket).
 
-rrm - Record file's MD5 sum before removing it.
+rrm - record file's MD5 sum before removing it (see rclean).
 
-shython - Shebang wrapper for cython.
+shython - shebang wrapper for cython.
 
-sound-reload - Reload sound system.
+sound-reload - reload sound system.
 
-stdout - Redirect both STDERR and STDOUT to STDOUT.
+stdout - redirect both STDERR and STDOUT to STDOUT.
 
-swapout - Force swapping out.
+swapout - force swapping out.
 
 T - tee stdout to and from temporary files.
 
 timestamp - prepend timestamp to output.
 
-tracefile - List files/dirs being accessed by program.
+tracefile - list files/dirs being accessed by program.
 
 upsidedown - flip input upside down.
 
-w4it-for-port-open - Block until the given port opens on a given host.
+vid - play videos matching strings in descending order of size.
+
+w4it-for-port-open - block until the given port opens on a given host.
 
 wastebasket - VLC extension for moving current file to a wastebasket.
 
-wifi-reload - Reload wifi drivers.
+wifi-reload - reload wifi drivers.
 
-wssh - Shorthand for w4it-for-port-open $host 22; ssh $host
+wssh - shorthand for w4it-for-port-open $host 22; ssh $host
 
-ytv - Download video and play it as soon as it is partially downloaded.
+ytv - download video and play it as soon as it is partially downloaded.
 
-yyyymmdd - Date in ISO8601 compressed format.
+yyyymmdd - date in ISO8601 compressed format.
