@@ -1,0 +1,91 @@
+#!/bin/bash
+
+: <<=cut
+=pod
+
+=head1 NAME
+
+vid - Play videos matching strings in descending order of size
+
+
+=head1 SYNOPSIS
+
+B<vid> [[grep options][string]]...
+
+
+=head1 DESCRIPTION
+
+B<vid> recursively searches for videos and sort them by size. It then
+filters out the names matching all the B<grep> expressions.
+
+There can be multiple B<grep> expressions.
+
+
+=head1 EXAMPLE
+
+Play videos matching B<Documentary> but not B<BBC>:
+
+  vid Documentary -v BBC
+
+
+=head1 AUTHOR
+
+Copyright (C) 2018 Ole Tange,
+http://ole.tange.dk and Free Software Foundation, Inc.
+
+
+=head1 LICENSE
+
+Copyright (C) 2012 Free Software Foundation, Inc.
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+at your option any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 DEPENDENCIES
+
+B<vid> uses B<G>, and B<vlc>.
+
+
+=head1 SEE ALSO
+
+B<G>
+
+
+=cut
+
+stdin() {
+    if tty -s ; then
+	# STDIN is terminal
+	find . -iregex '.*\(rm\|mov\|mpg\|mpeg\|avi\|wmv\|flv\|mp4\|3gp\)$' -type f |
+	    # Sort by size - descending
+	    perl -e 'print map {"$_\n"} sort { chomp $a;chomp $b; -s $b <=> -s $a } <>'
+    else
+	# STDIN redir'ed - read it
+	cat
+    fi
+}
+
+stdout() {
+    if [ -t 1 ] ; then
+	# STDOUT = terminal
+	# start VLC
+	parallel -Xj1 vlc
+    else
+	parallel -kXj1 ls -dS
+    fi
+}
+
+stdin | G "$@" | stdout
+
+exit $?
