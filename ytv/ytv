@@ -9,13 +9,26 @@ ytv - Start downloading youtube video and play it immediately
 
 =head1 SYNOPSIS
 
-B<ytv> I<youtube-url>
+B<ytv> [--tor] I<youtube-url>
 
 
 =head1 DESCRIPTION
 
 B<ytv> starts B<youtube-dl> in the background. When the partial
 downloaded file exists, it is played by B<vlc>.
+
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<--tor>
+
+Use tor proxy to download. It assumes you are running a tor proxy on
+127.0.0.1:9050.
+
+=back
+
 
 =head1 AUTHOR
 
@@ -53,13 +66,18 @@ B<ytv>, B<vlc>
 
 =cut
 
+use Getopt::Long;
+Getopt::Long::Configure("bundling","require_order");
+get_options_from_array(\@ARGV) || die_usage();
+my @tor = $opt::tor ? qw(--proxy socks4a://127.0.0.1:9050/) : ();
+
 `mkdir -p ~/tmp/Videos`;
 chdir($ENV{'HOME'}."/tmp/Videos");
 map { $before{$_} = -M $_ } <*>;
 for my $url (@ARGV) {
     if(not fork()) {
 	# Download in the background
-	system(qw(youtube-dl -f best),$url);
+	system(qw(youtube-dl -f best), @tor,$url);
 	exit;
     }
 }
@@ -79,4 +97,31 @@ while(@new) {
     # Run VLC on the matching files
     system("vlc", map { $a=$b=$_; $b=~s/.part//; s/.temp//; $a,$b,$_ } @new);
     @new = grep { not $before{$_} or $before{$_} > -M $_ } <*>;
+}
+
+sub get_options_from_array {
+    # Run GetOptions on @array
+    # Returns:
+    #   true if parsing worked
+    #   false if parsing failed
+    #   @array is changed
+    my $array_ref = shift;
+    # A bit of shuffling of @ARGV needed as GetOptionsFromArray is not
+    # supported everywhere
+    my @save_argv;
+    my $this_is_ARGV = (\@::ARGV == $array_ref);
+    if(not $this_is_ARGV) {
+	@save_argv = @::ARGV;
+	@::ARGV = @{$array_ref};
+    }
+    my @retval = GetOptions
+	("debug|D" => \$opt::debug,
+	 "tor" => \$opt::tor,
+	 "version|V" => \$opt::version,
+	);
+    if(not $this_is_ARGV) {
+	@{$array_ref} = @::ARGV;
+	@::ARGV = @save_argv;
+    }
+    return @retval;
 }
