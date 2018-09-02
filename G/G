@@ -14,9 +14,29 @@ B<G> [[grep options] string] [[grep options] string] ...
 
 =head1 DESCRIPTION
 
-B<G> is a short hand of writing:
+B<G> is a short hand of writing (search for single lines matching expressions):
 
   grep --option string | grep --option2 string2
+
+or with B<-g> (search full files matching expressions):
+
+  find . -type f | xargs grep -l string1 | xargs grep -l string1
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-g>
+
+Search current subtree for files that match all expressions - but not
+necessarily on the same line.
+
+=item I<other options>
+
+All B<grep> options.
+
+=back
+
 
 =head1 EXAMPLE
 
@@ -27,7 +47,7 @@ Grep for lines with Foo but not Bar:
 
 =head1 AUTHOR
 
-Copyright (C) 2017 Ole Tange,
+Copyright (C) 2017-2018 Ole Tange,
 http://ole.tange.dk and Free Software Foundation, Inc.
 
 
@@ -51,27 +71,41 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 =head1 DEPENDENCIES
 
-B<G> uses B<grep>.
+B<G> uses B<grep> and B<parallel>.
 
 
 =head1 SEE ALSO
 
-B<openssl>
+B<grep>
 
 
 =cut
 
 my $i = 0;
 
-while(@ARGV) {
-    $_ = shift;
+for(@ARGV) {
+    if($_ eq "-g") {
+	# -g = recursive-and file grep
+	$opt::g ||= 1;
+	# -g not an option for grep
+	next;
+    }
     push @{$cmd[$i]}, $_;
     if(/^[^-]/) {
-	$i++
+	$i++;
     }
 }
 
-if(@cmd) {
+if($opt::g and @cmd) {
+    my $a = shift @cmd;
+    my $run = 'find . -type f | parallel -kXq grep -l '.shell_quote(@$a);
+    if(@cmd) {
+	$run .= '|' .
+	    join"|", map { 'xargs -d"\n" grep -l '.
+			       join(" ", shell_quote(@$_)) } @cmd;
+    }
+    exec $run;
+} elsif(@cmd) {
     exec join"|", map { "grep ".join(" ", shell_quote(@$_)) } @cmd;
 } else {
     exec 'cat';
