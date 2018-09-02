@@ -67,7 +67,7 @@ B<G>
 stdin() {
     if tty -s ; then
 	# STDIN is terminal
-	find . -iregex '.*\(rm\|mov\|mpg\|mpeg\|avi\|wmv\|flv\|mp4\|3gp\)$' -type f |
+	find . -iregex '.*\(webm\|rm\|mov\|mpg\|mpeg\|avi\|wmv\|flv\|mp4\|3gp\)$' -type f |
 	    # Sort by size - descending
 	    perl -e 'print map {"$_\n"} sort { chomp $a;chomp $b; -s $b <=> -s $a } <>'
     else
