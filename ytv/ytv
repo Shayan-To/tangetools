@@ -77,6 +77,7 @@ map { $before{$_} = -M $_ } <*>;
 for my $url (@ARGV) {
     if(not fork()) {
 	# Download in the background
+	system(qw(youtube-dl --all-subs --skip-download), @tor,$url);
 	system(qw(youtube-dl -f best), @tor,$url);
 	exit;
     }
