@@ -120,10 +120,20 @@ man -w "$@" |
     # Convert ˆ to ^
     #   remove lines like: .    ds ^ \&
     perl -ne '/^\s*\.\s*ds\s+\S*\^/ or print' |
-    #   replace ^ with \(ha
-    sed 's/\^/\\(ha/g' |
-    # Convert -- to - and '' to "
-    (echo '.tr \--'; perl -pe "s/''|\`\`/\"\"/g;") |
+    perl -pe '
+      # replace ^ with \(ha
+      s/\^/\\(ha/g;
+      # replace \*(-- with \-\-
+      s/\\\*\(--/\-\-/g;
+      # replace \*(L" or \*(R" with "
+      s/\\\*\([LR]"/"/g;
+    ' |
+    # Todo ~
+    # Convert -- to -
+    (
+	echo '.tr \--';
+	cat -
+    ) |
     man -tl - |
     perl -pe "s/'/\\\\010/g" |
     ps2pdf - >$pdf && pdfviewer $pdf
