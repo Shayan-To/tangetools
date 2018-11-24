@@ -98,7 +98,7 @@ for(@ARGV) {
 
 if($opt::g and @cmd) {
     my $a = shift @cmd;
-    my $run = 'find . -type f | parallel -kXq grep -l '.shell_quote(@$a);
+    my $run = 'find . -type f | parallel --lb -Xq grep -l '.shell_quote(@$a);
     if(@cmd) {
 	$run .= '|' .
 	    join"|", map { 'xargs -d"\n" grep -l '.
