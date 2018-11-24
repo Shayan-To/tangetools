@@ -20,6 +20,9 @@ filters out the names matching all the B<grep> expressions.
 
 There can be multiple B<grep> expressions.
 
+The searching is cached in B<.vidlist> in a parent dir or in the
+current dir if no parents contain B<.vidlist>.
+
 
 =head1 EXAMPLE
 
@@ -64,12 +67,64 @@ B<G>
 
 =cut
 
+find_find_vidlist() {
+    dir="$1"
+    if [ -f "$1"/.vidlist ] ; then
+	echo "$1"/.vidlist
+	return 0
+    else
+	if [ "/" == $(readlink -f "$dir") ]; then
+	    echo ./.vidlist
+	    return 0
+	fi
+	find_find_vidlist "../$dir"
+	return $?
+    fi
+}
+
+update_list() {
+    # update_list(vidlist_file, full_path_vidlist_dir)
+    # Update vidlist
+    # Update .vidlist with content from full_path_vidlist_dir
+    vidlist="$1"
+    full_path_vidlist_dir="$2"
+    # Subshell to ignore 'cd'
+    (cd "$full_path_vidlist_dir" &&
+	 find . -iregex '.*\(webm\|rm\|mov\|mpg\|mpeg\|avi\|wmv\|flv\|mp4\|3gp\)$' \
+	      -type f -printf '%s\t%p\n') |
+	# Sort by size
+	sort -rn |
+	# Remove size
+	perl -pe 's/^\S+\t//' > "$vidlist".$$
+    mv "$vidlist".$$ "$vidlist"
+}
+
+cat_list() {
+    vidlist="$(find_find_vidlist .)"
+    full_path_vidlist_dir="$(dirname $(readlink -f "$vidlist") )"
+    full_path_thisdir="$(readlink -f .)"
+    if [ -f "$vidlist" ] ; then
+	# find background (>/dev/null to detach from tty)
+	update_list "$vidlist" "$full_path_vidlist_dir" >/dev/null &
+    else
+	# find foreground
+	update_list "$vidlist" "$full_path_vidlist_dir"
+    fi
+    subdir="$(echo "$full_path_thisdir" |
+	perl -pe 's|\Q'"$full_path_vidlist_dir"'\E||')"
+    # if not empty append /
+    if [ -n "$subdir" ] ; then
+	subdir="$subdir/"
+    fi
+    # cat "$vidlist" | grep matching this dir + remove dirs
+    cat "$vidlist" |
+	perl -ne 's|^(\./)?\Q'"$subdir"'\E|| and print'
+}
+
 stdin() {
     if tty -s ; then
 	# STDIN is terminal
-	find . -iregex '.*\(webm\|rm\|mov\|mpg\|mpeg\|avi\|wmv\|flv\|mp4\|3gp\)$' -type f |
-	    # Sort by size - descending
-	    perl -e 'print map {"$_\n"} sort { chomp $a;chomp $b; -s $b <=> -s $a } <>'
+	cat_list
     else
 	# STDIN redir'ed - read it
 	cat
@@ -82,7 +137,7 @@ stdout() {
 	# start VLC
 	parallel -Xj1 vlc
     else
-	parallel -kXj1 ls -dS
+	cat
     fi
 }
 
