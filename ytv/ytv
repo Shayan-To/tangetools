@@ -74,30 +74,58 @@ my @tor = $opt::tor ? qw(--proxy socks4a://127.0.0.1:9050/) : ();
 `mkdir -p ~/tmp/Videos`;
 chdir($ENV{'HOME'}."/tmp/Videos");
 map { $before{$_} = -M $_ } <*>;
+my @youtubeid;
+if(not @ARGV) {
+    chomp(@ARGV = <>);
+}
+
 for my $url (@ARGV) {
+    print "Playing $url\n";
     if(not fork()) {
 	# Download in the background
 	system(qw(youtube-dl --all-subs --skip-download), @tor,$url);
 	system(qw(youtube-dl -f best), @tor,$url);
 	exit;
     }
-}
 
-$SIG{'CHLD'} = sub { exit; };
+    do {
+	# Sleep until there are matching files
+	@new = ((grep { -e $_ } $url),
+		(grep { !/Frag\d/ } grep { -s $_ > 1000000 }
+		 grep { not $before{$_} or $before{$_} > -M $_ } <*>),
+		map { my $id = $_; grep { /$id/ } <*> }
+		grep { s/^.*watch.v=([a-z0-9]+).*$/$1/i
+			   or
+			   s/^.*youtu.be.([a-z0-9]+).*$/$1/i } $url);
+	usleep(10);
+    } until @new;
 
-do {
-    # Sleep until there are matching files
-    sleep(1);
-    @new = (grep { !/Frag\d/ } grep { -s $_ > 1000000 }
-	    grep { not $before{$_} or $before{$_} > -M $_ } <*>);
-} until @new;
-
-while(@new) {
-    # Mark as seen
-    map { $before{$_} = -M $_ } @new;
-    # Run VLC on the matching files
-    system("vlc", map { $a=$b=$_; $b=~s/.part//; s/.temp//; $a,$b,$_ } @new);
-    @new = grep { not $before{$_} or $before{$_} > -M $_ } <*>;
+    while(@new) {
+	# Mark as seen
+	map { $before{$_} = -M $_ } @new;
+	# Run VLC on the matching files
+	if($opt::kodi) {
+	    for(uniq(map { $a=$b=$_; $b=~s/.part//; s/.temp//; $a,$b,$_ } @new)) {
+		my $answer;
+		do {
+		    print "KODI playing $_\n";
+		    if(not fork()) {
+			exec("idok", $_);
+		    }
+		    print "Press ENTER\n";
+		    open(my $tty_fh, "<", "/dev/tty") || ::die_bug("interactive-tty");
+		    $answer = <$tty_fh>;
+		    close $tty_fh;
+		    if($answer =~ /d/i) {
+			unlink $_;
+		    }
+		} while($answer =~ /r/i);
+	    }
+	} else {
+	    system("vlc", map { $a=$b=$_; $b=~s/.part//; s/.temp//; $a,$b,$_ } @new);
+	}
+	@new = grep { not $before{$_} or $before{$_} > -M $_ } <*>;
+    }
 }
 
 sub get_options_from_array {
@@ -118,6 +146,7 @@ sub get_options_from_array {
     my @retval = GetOptions
 	("debug|D" => \$opt::debug,
 	 "tor" => \$opt::tor,
+	 "kodi|k" => \$opt::kodi,
 	 "version|V" => \$opt::version,
 	);
     if(not $this_is_ARGV) {
@@ -125,4 +154,17 @@ sub get_options_from_array {
 	@::ARGV = @save_argv;
     }
     return @retval;
+}
+
+sub usleep {
+    # Sleep this many milliseconds.
+    # Input:
+    #   $ms = milliseconds to sleep
+    my $ms = shift;
+    select(undef, undef, undef, $ms/1000);
+}
+
+sub uniq {
+    # Remove duplicates and return unique values
+    return keys %{{ map { $_ => 1 } @_ }};
 }
