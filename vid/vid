@@ -68,6 +68,9 @@ B<G>
 =cut
 
 find_find_vidlist() {
+    # find_find_vidlist(start_dir)
+    # Find the file .vidlist in . .. ../.. ../../.. etc
+    # If not found: ./.vidlist
     dir="$1"
     if [ -f "$1"/.vidlist ] ; then
 	echo "$1"/.vidlist
@@ -90,16 +93,24 @@ update_list() {
     full_path_vidlist_dir="$2"
     # Subshell to ignore 'cd'
     (cd "$full_path_vidlist_dir" &&
-	 find . -iregex '.*\(webm\|rm\|mov\|mpg\|mpeg\|avi\|wmv\|flv\|mp4\|3gp\)$' \
+	 # Find video files, print them with size prepended
+	 ionice -c 3 find . -iregex \
+		'.*\(webm\|rm\|mov\|mpg\|mpeg\|avi\|wmv\|flv\|mp4\|3gp\)$' \
+		-type f -printf '%s\t%p\n' ||
+	     # If ionice -c 3 fails, try without
+	     find . -iregex \
+		  '.*\(webm\|rm\|mov\|mpg\|mpeg\|avi\|wmv\|flv\|mp4\|3gp\)$' \
 	      -type f -printf '%s\t%p\n') |
 	# Sort by size
 	sort -rn |
-	# Remove size
+	# Remove size column
 	perl -pe 's/^\S+\t//' > "$vidlist".$$
+    # Replace old vidlist with new
     mv "$vidlist".$$ "$vidlist"
 }
 
 cat_list() {
+    # cat the vidlist for file names in current dir
     vidlist="$(find_find_vidlist .)"
     full_path_vidlist_dir="$(dirname $(readlink -f "$vidlist") )"
     full_path_thisdir="$(readlink -f .)"
@@ -111,12 +122,9 @@ cat_list() {
 	update_list "$vidlist" "$full_path_vidlist_dir"
     fi
     subdir="$(echo "$full_path_thisdir" |
-	perl -pe 's|\Q'"$full_path_vidlist_dir"'\E||')"
-    # if not empty append /
-    if [ -n "$subdir" ] ; then
-	subdir="$subdir/"
-    fi
+	perl -pe 's|\Q'"$full_path_vidlist_dir"'\E|.|')/"
     # cat "$vidlist" | grep matching this dir + remove dirs
+    # echo "$vidlist" "$full_path_thisdir" "$full_path_vidlist_dir" = "$subdir" >&2
     cat "$vidlist" |
 	perl -ne 's|^(\./)?\Q'"$subdir"'\E|| and print'
 }
@@ -135,7 +143,7 @@ stdout() {
     if [ -t 1 ] ; then
 	# STDOUT = terminal
 	# start VLC
-	parallel -Xj1 vlc
+	parallel --lb -Xj1 vlc
     else
 	cat
     fi
