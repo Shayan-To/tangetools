@@ -95,11 +95,11 @@ update_list() {
     (cd "$full_path_vidlist_dir" &&
 	 # Find video files, print them with size prepended
 	 ionice -c 3 find . -iregex \
-		'.*\(webm\|rm\|mov\|mpg\|mpeg\|avi\|wmv\|flv\|mp4\|3gp\)$' \
+		'.*\(webm\|rm\|mov\|mpg\|mpeg\|asf\|avi\|wmv\|flv\|mp4\|3gp\)$' \
 		-type f -printf '%s\t%p\n' ||
 	     # If ionice -c 3 fails, try without
 	     find . -iregex \
-		  '.*\(webm\|rm\|mov\|mpg\|mpeg\|avi\|wmv\|flv\|mp4\|3gp\)$' \
+		  '.*\(webm\|rm\|mov\|mpg\|mpeg\|asf\|avi\|wmv\|flv\|mp4\|3gp\)$' \
 	      -type f -printf '%s\t%p\n') |
 	# Sort by size
 	sort -rn |
