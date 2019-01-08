@@ -51,26 +51,43 @@ B<bash>(1)
 
 =cut
 
-modules="iwl4965 iwl3945 iwldvm ath9k ath9k_common ath9k_hw ath ath3k brcmfmac rt73usb rt2x00lib cfg80211 mac80211"
+modules="rt2500usb iwl4965 iwl3945 iwldvm ath9k ath9k_common ath9k_hw ath ath3k brcmfmac rt73usb rt2x00lib cfg80211 mac80211"
 
-sudo killall wpa_supplicant
-sudo parallel -j0 --delay 0.03 --retries 50 modprobe -r ::: $modules
-sudo killall -9 wpa_supplicant
-parallel -j1 sudo modprobe ::: $modules
-sudo rfkill unblock all
-PID=$(sudo NetworkManager 2>&1 | grep -Eo '[0-9]+')
-sudo kill $PID || sudo killall NetworkManager
-sleep 1
-sudo kill -9 $PID
-#sudo NetworkManager &
+stop() {
+    sudo killall wpa_supplicant
+    PID=$(sudo NetworkManager 2>&1 | grep -Eo '[0-9]+')
+    sudo kill $PID || sudo killall NetworkManager
+    sudo parallel -j1 --delay 0.03 --retries 50 modprobe -r ::: $modules
+    killall nm-applet || killall -9 nm-applet
+    sudo killall -9 wpa_supplicant
+    sudo kill -9 $PID || sudo killall -9 NetworkManager
+}
 
+start() {
+    parallel -j1 sudo modprobe ::: $modules
+    sudo rfkill unblock all
+    sleep 1
+    #sudo service network-manager start
+    sudo NetworkManager &
+    #sudo /etc/init.d/network-manager restart
+    #sudo /etc/init.d/network-manager start
+    nm-applet 2>/dev/null &
+}
+
+config() {
+    IF=$1
+    sudo bash -c 'cat >> /etc/resolv.conf' < /etc/resolvconf/resolv.conf.d/head 
+    #sudo iwconfig wls1 essid Turris
+    #sudo iwconfig wls1 essid Leif
+    sudo dhclient $IF &
+    sudo wpa_supplicant -Dwext -c/etc/wpa_supplicant.conf -i$IF -d &
+}
+
+stop
+start
 if tty -s ; then
     # STDIN is terminal
-    timeout 12 dmesg -Tw
-    #    timeout 12 forever dmesg | puniq
+    true timeout 12 dmesg -Tw &
 fi
-
-#sudo bash -c 'cat >> /etc/resolv.conf' < /etc/resolvconf/resolv.conf.d/head 
-#sudo iwconfig wls1 essid Turris
-#sudo dhclient wls1 &
-#sudo wpa_supplicant -Dwext -c/etc/wpa_supplicant.conf -iwls1 -d &
+#config wlp3s0
+#config wlx0016e63a51cb
