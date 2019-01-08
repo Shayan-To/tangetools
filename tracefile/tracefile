@@ -6,9 +6,9 @@ tracefile - list files being accessed
 
 =head1 SYNOPSIS
 
-B<tracefile> [-adefnruw] I<command>
+B<tracefile> [-adeflnruw] I<command>
 
-B<tracefile> [-adefnruw] -p I<pid>
+B<tracefile> [-adeflnruw] -p I<pid>
 
 =head1 DESCRIPTION
 
@@ -49,6 +49,14 @@ List only existing files.
 =item B<--file>
 
 List only normal files.
+
+
+=item B<-l>
+
+=item B<--local>
+
+List only files in current directory. Useful to avoid matching at
+system files.
 
 
 =item B<-n>
@@ -243,9 +251,6 @@ $Global::progname = "tracefile";
 Getopt::Long::Configure("bundling","require_order");
 get_options_from_array(\@ARGV) || die_usage();
 init_functions();
-if(not ($opt::exists or $opt::nonexists or $opt::all or $opt::dir or $opt::file)) {
-    $opt::all = 1;
-}
 
 my @cmd = shell_quote(@ARGV);
 my $dir = ".";
@@ -258,11 +263,11 @@ while(<IN>) {
     }
     # [pid 30817] stat("t/tar.gz", {st_mode=S_IFREG|0644, st_size=140853248, ...}) = 0
     # openat(AT_FDCWD, "/tmp/a", O_WRONLY|O_CREAT|O_NOCTTY|O_NONBLOCK, 0666) = 3
-    if(/^(\[[^]]\])? # Match pid
-       \s*([^\" ]+)  # function
-       [(]          # (
-       [^"]*        # E.g. AT_FDCWD
-       "            # "
+    if(/^(\[[^]]+\])? # Match pid
+       \s*([^\" ]+)   # function
+       [(]            # (
+       [^"]*          # E.g. AT_FDCWD
+       "              # "
        (([^\\"]|\\[\\"nt])*) # content of string with \n \" \t \\
        "(.*)/x)     # Rest
     {
@@ -272,6 +277,10 @@ while(<IN>) {
 	my $addinfo = $5;
 	# Relative to $dir
 	$file =~ s:^([^/]):$dir/$1:;
+	$file =~ s:/./:/:g; # /./ => /
+	$file =~ s:/[^/]+/../:/:g; # /foo/../ => /
+	# Match files in $PWD or starting with ./
+	my $local = ($file =~ m<^(\Q$ENV{'PWD'}\E|\./)>);
 	my $read = readfunc($function,$addinfo);
 	my $write = writefunc($function,$addinfo);
 	my $print = 1;
@@ -285,14 +294,15 @@ while(<IN>) {
 	   or
 	   ($opt::exists and not -e $file)
 	   or
+	   ($opt::local and not $local)
+	   or
 	   ($opt::nonexists and -e $file)
 	   or
 	   ($opt::unique and $seen{$file}++)) {
 	    $print = 0;
 	}
 	$print and print $file,"\n";
-    }
-    
+    }    
 }
 
 {
@@ -366,6 +376,7 @@ sub options_hash {
 	 "uniq|unique|u" => \$opt::unique,
          "exists|exist|e" => \$opt::exists,
          "nonexists|nonexist|non-exists|non-exist|n" => \$opt::nonexists,
+	 "local|l" => \$opt::local,
 	 "read|r" => \$opt::read,
 	 "write|w" => \$opt::write,
          "all|a" => \$opt::all,
