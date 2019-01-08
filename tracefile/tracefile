@@ -6,9 +6,9 @@ tracefile - list files being accessed
 
 =head1 SYNOPSIS
 
-B<tracefile> [-adefnu] I<command>
+B<tracefile> [-adefnruw] I<command>
 
-B<tracefile> [-adefnu] -p I<pid>
+B<tracefile> [-adefnruw] -p I<pid>
 
 =head1 DESCRIPTION
 
@@ -48,7 +48,7 @@ List only existing files.
 
 =item B<--file>
 
-List only files.
+List only normal files.
 
 
 =item B<-n>
@@ -70,6 +70,21 @@ Trace process id.
 =item B<--unique>
 
 List only files once.
+
+
+=item B<-r>
+
+=item B<--read>
+
+List only files being access for reading.
+
+
+=item B<-w>
+
+=item B<--write>
+
+List only files being access for writing.
+
 
 =back
 
@@ -98,7 +113,7 @@ Report bugs to <tange@gnu.org>.
 
 =head1 AUTHOR
 
-Copyright (C) 2012,2016,2017 Ole Tange, http://ole.tange.dk and Free
+Copyright (C) 2012-2019 Ole Tange, http://ole.tange.dk and Free
 Software Foundation, Inc.
 
 
@@ -227,7 +242,7 @@ $Global::progname = "tracefile";
 
 Getopt::Long::Configure("bundling","require_order");
 get_options_from_array(\@ARGV) || die_usage();
-
+init_functions();
 if(not ($opt::exists or $opt::nonexists or $opt::all or $opt::dir or $opt::file)) {
     $opt::all = 1;
 }
@@ -241,15 +256,30 @@ while(<IN>) {
     if(/chdir."(([^\\"]|\\[\\"nt])*)".\s*=\s*0/) {
 	$dir = $1;
     }
-
-    # [pid 30817] stat("transpose/100000files.tar.gz", {st_mode=S_IFREG|0644, st_size=140853248, ...}) = 0
-    if(s/^[^\"]+"(([^\\"]|\\[\\"nt])*)".*/$1/) {
+    # [pid 30817] stat("t/tar.gz", {st_mode=S_IFREG|0644, st_size=140853248, ...}) = 0
+    # openat(AT_FDCWD, "/tmp/a", O_WRONLY|O_CREAT|O_NOCTTY|O_NONBLOCK, 0666) = 3
+    if(/^(\[[^]]\])? # Match pid
+       \s*([^\" ]+)  # function
+       [(]          # (
+       [^"]*        # E.g. AT_FDCWD
+       "            # "
+       (([^\\"]|\\[\\"nt])*) # content of string with \n \" \t \\
+       "(.*)/x)     # Rest
+    {
 	# Matches the strace structure for a file
-	my $file = shell_unquote($1);
+	my $function = $2;
+	my $file = shell_unquote($3);
+	my $addinfo = $5;
 	# Relative to $dir
 	$file =~ s:^([^/]):$dir/$1:;
+	my $read = readfunc($function,$addinfo);
+	my $write = writefunc($function,$addinfo);
 	my $print = 1;
-	if(($opt::dir and not -d $file)
+	if(($opt::read and not $read)
+	   or
+	   ($opt::write and not $write)
+	   or
+	   ($opt::dir and not -d $file)
 	   or
 	   ($opt::file and not -f $file)
 	   or
@@ -262,6 +292,69 @@ while(<IN>) {
 	}
 	$print and print $file,"\n";
     }
+    
+}
+
+{
+    my %warned;
+    my %funcs;
+    
+    sub init_functions {
+	# function name => r/w/rw/n/?
+	# r = read
+	# w = write
+	# rw = read+write
+	# n = neither (false match)
+	# ? = TODO figure out what they do
+	%funcs =
+	    qw(access r acct ? chdir r chmod w chown w chown16 w
+	       chroot r creat w execv r execve r execveat r faccessat
+	       r fanotify_mark ? fchmodat w fchownat w fstat r fstat64
+	       r fstatat64 r fstatfs r fstatfs64 r futimesat r getcwd
+	       r getxattr r inotify_add_watch r link w linkat w
+	       listxattr r lstat r lstat64 r mkdir w mkdirat w mknod w
+	       mknodat w mount r name_to_handle_at ?  newfstatat r
+	       oldfstat r oldlstat r oldstat r open rw openat rw
+	       osf_fstatfs r osf_statfs r osf_utimes r perror n pivotroot r
+	       printargs ? printf n quotactl ?  readlink r readlinkat r
+	       removexattr w rename w renameat w renameat2 w rmdir w
+	       setxattr w stat r stat64 r statfs r statfs64 r statx r
+	       swapoff w swapon w symlink w symlinkat w truncate w
+	       truncate64 w umount r umount2 r unlink w unlinkat w
+	       uselib r utime w utimensat w utimes w);
+    }
+
+    sub readfunc {
+	# The call is a call that would work on a RO file system
+	my($func,$info) = @_;
+	if($func eq "open" or $func eq "openat") {
+	    return ($info=~/O_RDONLY/);
+	}
+	if($funcs{$func}) {
+	    return ($funcs{$func} eq "r");
+	} else {
+	    $warned{$func}++ or
+		warning("'$func' is unknown. Please report at",
+			"https://gitlab.com/ole.tange/tangetools/issues");
+	    return 0;
+	}
+    }
+
+    sub writefunc {
+	# The call is a call that would need RW file system
+	my($func,$info) = @_;
+	if($func eq "open" or $func eq "openat") {
+	    return ($info=~/O_WRONLY|O_APPEND|O_CREAT/);
+	}
+	if($funcs{$func}) {
+	    return ($funcs{$func} eq "w");
+	} else {
+	    $warned{$func}++ or
+	    warning("$func is unknown. Please report at",
+		    "https://gitlab.com/ole.tange/tangetools/issues");
+	    return 0;
+	}
+    }
 }
 
 sub options_hash {
@@ -273,6 +366,8 @@ sub options_hash {
 	 "uniq|unique|u" => \$opt::unique,
          "exists|exist|e" => \$opt::exists,
          "nonexists|nonexist|non-exists|non-exist|n" => \$opt::nonexists,
+	 "read|r" => \$opt::read,
+	 "write|w" => \$opt::write,
          "all|a" => \$opt::all,
 	 "pid|p=i" => \$opt::pid,
 	);
@@ -349,7 +444,7 @@ sub warning {
     my @w = @_;
     my $fh = $Global::original_stderr || *STDERR;
     my $prog = $Global::progname || "tracefile";
-    print $fh $prog, ": Warning: ", @w;
+    print $fh map { ($prog, ": Warning: ", $_, "\n"); } @w;
 }
 
 
@@ -360,5 +455,29 @@ sub error {
     print $fh $prog, ": Error: ", @w;
 }
 
-
+sub my_dump(@) {
+    # Returns:
+    #   ascii expression of object if Data::Dump(er) is installed
+    #   error code otherwise
+    my @dump_this = (@_);
+    eval "use Data::Dump qw(dump);";
+    if ($@) {
+        # Data::Dump not installed
+        eval "use Data::Dumper;";
+        if ($@) {
+            my $err =  "Neither Data::Dump nor Data::Dumper is installed\n".
+                "Not dumping output\n";
+            ::status($err);
+            return $err;
+        } else {
+            return Dumper(@dump_this);
+        }
+    } else {
+	# Create a dummy Data::Dump:dump as Hans Schou sometimes has
+	# it undefined
+	eval "sub Data::Dump:dump {}";
+        eval "use Data::Dump qw(dump);";
+        return (Data::Dump::dump(@dump_this));
+    }
+}
 
