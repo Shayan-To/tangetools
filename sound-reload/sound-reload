@@ -55,6 +55,8 @@ echo autospawn=no >> ~/.pulse/client.conf
 pulseaudio -k
 fuser -kv /dev/snd/*
 modules="
+  thinkpad_acpi
+  snd_hda_codec_conexant
   snd_hda_intel
   snd_hda_codec_hdmi
   snd_hda_codec_analog
@@ -72,8 +74,10 @@ modules="
   snd
   soundcore
 "
-sudo parallel --retries=10 modprobe -r ::: $modules
+sudo parallel --retries=100 -N0 modprobe -r $modules ::: 1
 lsmod|grep snd
+lspci | grep Audio || echo "!!! No audio hardware found in lspci"
 sudo parallel -j1 modprobe ::: $modules
 timeout 5 pulseaudio --log-level=3
 pulseaudio -D
+pacmd list-cards | grep 'card.* available.'
