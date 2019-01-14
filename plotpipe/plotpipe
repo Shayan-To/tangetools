@@ -1,0 +1,66 @@
+#!/bin/bash
+
+#!/bin/bash
+
+: <<=cut
+=pod
+
+=head1 NAME
+
+plotpipe - Plot 1D-data or 2D-data from a pipe
+
+
+=head1 SYNOPSIS
+
+I<datagenerator> | B<plotpipe>
+
+
+=head1 DESCRIPTION
+
+B<plotpipe> is a simple wrapper for GNUPlot to simply plot 1D and 2D-data.
+
+
+=head1 EXAMPLE
+
+Plot the points (1,101) .. (100,200):
+
+  paste <(seq 100) <(seq 101 200) | plotpipe
+
+  
+=head1 AUTHOR
+
+Copyright (C) 2019 Ole Tange,
+http://ole.tange.dk and Free Software Foundation, Inc.
+
+
+=head1 LICENSE
+
+Copyright (C) 2012 Free Software Foundation, Inc.
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+at your option any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 DEPENDENCIES
+
+B<pipeplot> uses B<gnuplot>.
+
+
+=head1 SEE ALSO
+
+B<gnuplot>
+
+
+=cut
+
+gnuplot -p -e 'plot "/dev/stdin"'

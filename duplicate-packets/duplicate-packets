@@ -1,7 +1,22 @@
 #!/bin/bash
 
-IF=wls1
-sudo tc qdisc del dev $IF root netem duplicate 50
-sudo tc qdisc add dev $IF root netem duplicate 50
+
+doit() {
+    IF=$1
+    adddel=$2
+    sudo tc qdisc $adddel dev $IF root netem duplicate 50
+}
+del() {
+    doit $1 del
+}
+add() {
+    doit $1 add
+}
+
+. `which env_parallel.bash`
+ifconfig -a |
+    perl -ne '/^(\S+):/ and print "$1\n"' |
+    env_parallel 'del {}; add {}'
+
 #sudo tc qdisc del dev $IF root netem duplicate 100% delay 300ms
 #sudo tc qdisc add dev $IF root netem duplicate 100% delay 300ms
