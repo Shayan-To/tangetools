@@ -63,10 +63,12 @@ stop() {
     sudo kill -9 $PID || sudo killall -9 NetworkManager
 }
 
-start() {
+starthw() {
     parallel -j1 sudo modprobe ::: $modules
     sudo rfkill unblock all
-    sleep 1
+}
+
+startnm() {
     #sudo service network-manager start
     sudo NetworkManager &
     #sudo /etc/init.d/network-manager restart
@@ -79,12 +81,15 @@ config() {
     sudo bash -c 'cat >> /etc/resolv.conf' < /etc/resolvconf/resolv.conf.d/head 
     #sudo iwconfig wls1 essid Turris
     #sudo iwconfig wls1 essid Leif
+    sudo iwconfig wls1 essid SKYbroadbandCC95
+    sudo wpa_supplicant  -c/etc/wpa_supplicant.conf -i$IF -d &
     sudo dhclient $IF &
-    sudo wpa_supplicant -Dwext -c/etc/wpa_supplicant.conf -i$IF -d &
 }
 
 stop
-start
+starthw
+config wlp3s0
+#startnm
 if tty -s ; then
     # STDIN is terminal
     true timeout 12 dmesg -Tw &
