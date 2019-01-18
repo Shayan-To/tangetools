@@ -1,0 +1,212 @@
+#!/usr/bin/perl
+
+=pod
+
+=head1 NAME
+
+burncpu - use 100% of some CPU threads
+
+
+=head1 SYNOPSIS
+
+burncpu [-t I<timeout>] [-r I<rounds>] [-T I<threads>] [-c]
+
+
+=head1 DESCRIPTION
+
+B<burncpu> runs a simple perl program which will use 100% of a CPU thread.
+
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-c>
+
+=item B<--cache>
+
+Run a program that uses more RAM than there is cache and thereby force
+cache misses (default: run small program that stays in cache).
+
+
+=item B<-r> I<rounds>
+
+=item B<--rounds> I<rounds>
+
+Exit after a number of rounds of work (default: infinity).
+
+
+=item B<-t> I<timeout>
+
+=item B<--timeout> I<timeout>
+
+Exit after a limited time (default: forever).
+
+
+=item B<-T> I<threads>
+
+=item B<--threads> I<threads>
+
+Run multiple CPU threads using more CPUs.
+
+
+=back
+
+
+=head1 EXAMPLE
+
+Stress 2 threads for 0.5 hour:
+
+  burncpu -T 2 -t 0.5h
+  
+  
+=head1 IDEAS
+
+With load: cpuburn -l 10
+
+
+=head1 AUTHOR
+
+Copyright (C) 2019 Ole Tange,
+http://ole.tange.dk and Free Software Foundation, Inc.
+
+
+=head1 LICENSE
+
+Copyright (C) 2012 Free Software Foundation, Inc.
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+at your option any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 DEPENDENCIES
+
+B<burncpu> uses B<perl>.
+
+
+=head1 SEE ALSO
+
+B<cpuburn>
+
+
+=cut
+
+use Getopt::Long;
+
+Getopt::Long::Configure("bundling","require_order");
+
+sub multiply_time_units($) {
+    # Evalualte numbers with time units
+    # s=1, m=60, h=3600, d=86400
+    # Input:
+    #   $s = string time units
+    # Returns:
+    #   $value = int in seconds
+    my @v = @_;
+    for(@v) {
+	defined $_ or next;
+	if(/[dhms]/i) {
+	    s/s/*1+/gi;
+	    s/m/*60+/gi;
+	    s/h/*3600+/gi;
+	    s/d/*86400+/gi;
+	    $_ = eval $_."0";
+	}
+    }
+    return wantarray ? @v : $v[0];
+}
+
+sub multiply_binary_prefix(@) {
+    # Evalualte numbers with binary prefix
+    # Ki=2^10, Mi=2^20, Gi=2^30, Ti=2^40, Pi=2^50, Ei=2^70, Zi=2^80, Yi=2^80
+    # ki=2^10, mi=2^20, gi=2^30, ti=2^40, pi=2^50, ei=2^70, zi=2^80, yi=2^80
+    # K =2^10, M =2^20, G =2^30, T =2^40, P =2^50, E =2^70, Z =2^80, Y =2^80
+    # k =10^3, m =10^6, g =10^9, t=10^12, p=10^15, e=10^18, z=10^21, y=10^24
+    # 13G = 13*1024*1024*1024 = 13958643712
+    # Input:
+    #   $s = string with prefixes
+    # Returns:
+    #   $value = int with prefixes multiplied
+    my @v = @_;
+    for(@v) {
+	defined $_ or next;
+	s/ki/*1024/gi;
+	s/mi/*1024*1024/gi;
+	s/gi/*1024*1024*1024/gi;
+	s/ti/*1024*1024*1024*1024/gi;
+	s/pi/*1024*1024*1024*1024*1024/gi;
+	s/ei/*1024*1024*1024*1024*1024*1024/gi;
+	s/zi/*1024*1024*1024*1024*1024*1024*1024/gi;
+	s/yi/*1024*1024*1024*1024*1024*1024*1024*1024/gi;
+	s/xi/*1024*1024*1024*1024*1024*1024*1024*1024*1024/gi;
+
+	s/K/*1024/g;
+	s/M/*1024*1024/g;
+	s/G/*1024*1024*1024/g;
+	s/T/*1024*1024*1024*1024/g;
+	s/P/*1024*1024*1024*1024*1024/g;
+	s/E/*1024*1024*1024*1024*1024*1024/g;
+	s/Z/*1024*1024*1024*1024*1024*1024*1024/g;
+	s/Y/*1024*1024*1024*1024*1024*1024*1024*1024/g;
+	s/X/*1024*1024*1024*1024*1024*1024*1024*1024*1024/g;
+
+	s/k/*1000/g;
+	s/m/*1000*1000/g;
+	s/g/*1000*1000*1000/g;
+	s/t/*1000*1000*1000*1000/g;
+	s/p/*1000*1000*1000*1000*1000/g;
+	s/e/*1000*1000*1000*1000*1000*1000/g;
+	s/z/*1000*1000*1000*1000*1000*1000*1000/g;
+	s/y/*1000*1000*1000*1000*1000*1000*1000*1000/g;
+	s/x/*1000*1000*1000*1000*1000*1000*1000*1000*1000/g;
+
+	$_ = eval $_;
+    }
+    return wantarray ? @v : $v[0];
+}
+
+GetOptions(
+    "debug|D=s" => \$opt::D,
+    "version" => \$opt::version,
+    "verbose|v" => \$opt::verbose,
+    "timeout|t=s" => \$opt::timeout,
+    "load|l=s" => \$opt::load,
+    "rounds|r=s" => \$opt::rounds,
+    "threads|T=s" => \$opt::threads,
+    "cache|c" => \$opt::cache,
+    );
+
+$opt::timeout = multiply_time_units($opt::timeout);
+$opt::timeout ||= 2**31;
+$opt::rounds = multiply_binary_prefix($opt::rounds);
+$opt::rounds ||= 2**31;
+$opt::threads = multiply_binary_prefix($opt::threads);
+$opt::threads ||= 1;
+
+while(--$opt::threads > 0 and fork()) {}
+
+my $starttime = time;
+while(time <= $starttime+$opt::timeout
+      and
+      ++$round <= $opt::rounds) {
+    if($opt::cache) {
+	# force cache misses (use around 100 MB)
+	# do 10 times fewer rounds
+	for(my $t = 0; $t < 1000000; $t++){
+	    $cache{$t%1000000} = $cache{int(rand*1000000)%1000000}++;
+	}
+    } else {
+	for(my $t = 0; $t < 10000000; $t++){}
+    }	
+}
+wait();
