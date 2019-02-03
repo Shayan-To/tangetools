@@ -9,7 +9,8 @@ ytv - Start downloading youtube video and play it immediately
 
 =head1 SYNOPSIS
 
-B<ytv> [--tor] I<youtube-url>
+B<ytv> [--tor] [--kodi] I<youtube-url>
+cat urlfile | B<ytv> [--tor] [--kodi]
 
 
 =head1 DESCRIPTION
@@ -32,7 +33,7 @@ Use tor proxy to download. It assumes you are running a tor proxy on
 
 =head1 AUTHOR
 
-Copyright (C) 2017 Ole Tange,
+Copyright (C) 2017-2019 Ole Tange,
 http://ole.tange.dk and Free Software Foundation, Inc.
 
 
@@ -75,11 +76,19 @@ my @tor = $opt::tor ? qw(--proxy socks4a://127.0.0.1:9050/) : ();
 chdir($ENV{'HOME'}."/tmp/Videos");
 map { $before{$_} = -M $_ } <*>;
 my @youtubeid;
+for (@ARGV) {
+    play($_)
+}
 if(not @ARGV) {
-    chomp(@ARGV = <>);
+    while(<>) {
+	chomp;
+	play($_)
+    }
 }
 
-for my $url (@ARGV) {
+sub play {
+    my $url = shift;
+
     print "Playing $url\n";
     if(not fork()) {
 	# Download in the background
@@ -90,13 +99,19 @@ for my $url (@ARGV) {
 
     do {
 	# Sleep until there are matching files
-	@new = ((grep { -e $_ } $url),
-		(grep { !/Frag\d/ } grep { -s $_ > 1000000 }
-		 grep { not $before{$_} or $before{$_} > -M $_ } <*>),
-		map { my $id = $_; grep { /$id/ } <*> }
-		grep { s/^.*watch.v=([a-z0-9]+).*$/$1/i
-			   or
-			   s/^.*youtu.be.([a-z0-9]+).*$/$1/i } $url);
+	@new = (
+	    # Remove fragments and subtitles
+	    grep { !/vtt$|Frag\d/ }
+	    # Include $url if that is a file
+	    (grep { -e $_ } $url),
+	    # Look for files > 1M, and that we have not seen before
+	    (grep { -s $_ > 1000000 }
+	     grep { not $before{$_} or $before{$_} > -M $_ } <*>),
+	    # Include all files that match the id if $urls is a youtube ID
+	    map { my $id = $_; grep { /$id/ } <*> }
+	    grep { s/^.*watch.v=([a-z0-9]+).*$/$1/i
+		       or
+		       s/^.*youtu.be.([a-z0-9]+).*$/$1/i } $url);
 	usleep(10);
     } until @new;
 
@@ -112,12 +127,14 @@ for my $url (@ARGV) {
 		    if(not fork()) {
 			exec("idok", $_);
 		    }
-		    print "Press ENTER\n";
-		    open(my $tty_fh, "<", "/dev/tty") || ::die_bug("interactive-tty");
-		    $answer = <$tty_fh>;
-		    close $tty_fh;
-		    if($answer =~ /d/i) {
-			unlink $_;
+		    print "Press (r)etry, (d)elete, (n)ext\n";
+		    while(not $answer) {
+			open(my $tty_fh, "<", "/dev/tty") || ::die_bug("interactive-tty");
+			$answer = <$tty_fh>;
+			close $tty_fh;
+			if($answer =~ /d/i) {
+			    unlink $_;
+			}
 		    }
 		} while($answer =~ /r/i);
 	    }
