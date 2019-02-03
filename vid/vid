@@ -33,7 +33,7 @@ Play videos matching B<Documentary> but not B<BBC>:
 
 =head1 AUTHOR
 
-Copyright (C) 2018 Ole Tange,
+Copyright (C) 2018-2019 Ole Tange,
 http://ole.tange.dk and Free Software Foundation, Inc.
 
 
@@ -76,7 +76,7 @@ find_find_vidlist() {
 	echo "$1"/.vidlist
 	return 0
     else
-	if [ "/" == $(readlink -f "$dir") ]; then
+	if [ "/" == $(readlink -f "$dir") ] ; then
 	    echo ./.vidlist
 	    return 0
 	fi

@@ -1,8 +1,5 @@
-#!/bin/bash
+#!/usr/bin/perl
 
-#!/bin/bash
-
-: <<=cut
 =pod
 
 =head1 NAME
@@ -63,4 +60,16 @@ B<gnuplot>
 
 =cut
 
-gnuplot -p -e 'plot "/dev/stdin"'
+$line1 = <>;
+@col = split /\s+/, $line1;
+if($#col == 1) {
+    # 2 col
+    open GNUPLOT,"|-", q(gnuplot -p -e 'plot "/dev/stdin"') or die;
+} elsif($#col == 2) {
+    # 3 col (3rd = color)
+    open GNUPLOT,"|-", q(gnuplot -p -e 'plot "/dev/stdin" using 1:2:3 with points palette') or die;
+} else {
+    die "$#col,@col,$line1";
+}
+print GNUPLOT $line1, <>;
+close GNUPLOT;
