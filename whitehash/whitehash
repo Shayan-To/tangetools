@@ -1,0 +1,76 @@
+#!/usr/bin/python3
+
+# Replace \n\t with \n(spaces)\t at random to get a nice sha1sum
+#
+# SYNOPSIS
+#
+#   whitehash n < file
+#
+# n = number of chars
+# file = file to sha1sum
+
+import sys
+import math
+from random import shuffle
+import hashlib
+
+searchlen = int(sys.argv[1])
+
+def readparts():
+    # Read file
+    part = []
+    partno = 0
+    # Block of text ending in \n that is followed by a \t in next section
+    section = ""
+    for i in sys.stdin:
+        if i[0:1] == "\t":
+            part.append(section)
+            section = ""
+        section += i
+    part.append(section)
+
+    # part[1..] starts with \t
+    return(part)
+
+def mergeparts(tabs,part):
+    # merge parts at random so we have exactly tabs number of parts
+    x = [i for i in range(1,len(part))]
+    shuffle(x)
+    x = x[0:tabs]
+    x.sort();
+    x[:0] = [0]
+    x.append(len(part))
+
+    p2 = []
+    for i in range(len(x)-1):
+        p2.append("".join(part[x[i]:x[i+1]]))
+    return(p2)
+
+def recur(pre,n):
+    if n == len(part)-1:
+        for i in ("", " ", "  ", "   ", "    ", "     ", "      ", "       "):
+            sha1 = (hashlib.sha1((pre+i+part[n]).encode("utf-8")).hexdigest())[0:searchlen];
+            if sha1 in searchstrings:
+                print(hashlib.sha1((pre+i+part[n]).encode("utf-8")).hexdigest())
+                print(pre+i+part[n])
+    else:
+        for i in ("", " ", "  ", "   ", "    ", "     ", "      ", "       "):
+            recur(pre+i+part[n],n+1)
+            
+bits = searchlen*4
+part = readparts();
+tabs = math.ceil(bits/3.0)
+if tabs > len(part)-1:
+    print("Too many bits",bits,tabs,len(part))
+    exit(1);
+
+part = mergeparts(tabs,part)
+s="0123456789abcdef"
+# Chop at searchlen
+searchstrings = [ i[0:searchlen] for i in
+                  # Generate 111..1 222..2 .. fff..f
+                  ["%016x"%(0x1111111111111111*i) for i in range(16)]
+                  +
+                  # Generate 012..f 123..0 .. f01..e
+                  [ s[-i:]+s[:-i] for i in range(16)] ]
+recur(part[0],1)
