@@ -31,6 +31,9 @@ or with B<-g> (search full files matching expressions):
 Search current subtree for files that match all expressions - but not
 necessarily on the same line.
 
+If a parent dir contains a B<.git> dir B<git grep> is used.
+
+
 =item I<other options>
 
 All B<grep> options.
@@ -97,8 +100,30 @@ for(@ARGV) {
 }
 
 if($opt::g and @cmd) {
+    sub gitdir {
+	# Find .git dir somewhere in parent
+	my $dir = shift;
+	-d "$dir/.git" and return "$dir/.git";
+	if(join(":",stat $dir) eq join(":",stat "$dir/..")) {
+	    # This is root
+	    return undef;
+	}
+	return gitdir("../$dir")
+    }
+    sub cache_gitdir {
+	# cat all files in .git to /dev/null
+	my $dir = shift;
+	`find "$dir" -type f -print0 | xargs -0 cat >/dev/null`;
+    }
     my $a = shift @cmd;
-    my $run = 'find . -type f | parallel --lb -Xq grep -l '.shell_quote(@$a);
+
+    my $gitdir = gitdir(".");
+    if($gitdir) {
+	cache_gitdir($gitdir);
+	$run = 'git grep --threads 30 -l '.shell_quote(@$a);
+    } else {
+	$run = 'find . -type f | parallel --lb -Xq grep -l '.shell_quote(@$a);
+    }
     if(@cmd) {
 	$run .= '|' .
 	    join"|", map { 'xargs -d"\n" grep -l '.
