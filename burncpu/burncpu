@@ -58,8 +58,8 @@ Run multiple CPU threads using more CPUs.
 Stress 2 threads for 0.5 hour:
 
   burncpu -T 2 -t 0.5h
-  
-  
+
+
 =head1 IDEAS
 
 With load: cpuburn -l 10
@@ -193,20 +193,24 @@ $opt::rounds ||= 2**31;
 $opt::threads = multiply_binary_prefix($opt::threads);
 $opt::threads ||= 1;
 
+$| = 1;
 while(--$opt::threads > 0 and fork()) {}
 
 my $starttime = time;
 while(time <= $starttime+$opt::timeout
       and
       ++$round <= $opt::rounds) {
+    $opt::verbose and print ".";
     if($opt::cache) {
-	# force cache misses (use around 100 MB)
+	# Largest cache = 15 MB/core (60 MB shared between 4 cores)
+	# https://ark.intel.com/content/www/us/en/ark/products/93791/intel-xeon-processor-e7-8893-v4-60m-cache-3-20-ghz.html
+	# force cache misses (use around 130 MB)
 	# do 10 times fewer rounds
 	for(my $t = 0; $t < 1000000; $t++){
-	    $cache{$t%1000000} = $cache{int(rand*1000000)%1000000}++;
+	    $cache{$t%1000000} += $cache{int(rand*1000000)%1000000}++;
 	}
     } else {
 	for(my $t = 0; $t < 10000000; $t++){}
-    }	
+    }
 }
 wait();
