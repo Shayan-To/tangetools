@@ -79,9 +79,11 @@ startnm() {
 config() {
     IF=$1
     sudo bash -c 'cat >> /etc/resolv.conf' < /etc/resolvconf/resolv.conf.d/head 
-    #sudo iwconfig wls1 essid Turris
-    #sudo iwconfig wls1 essid Leif
-    sudo iwconfig wls1 essid SKYbroadbandCC95
+    sudo iwconfig $IF essid Turris
+    #sudo iwconfig $IF essid olet
+    #sudo iwconfig $IF essid elverhoej
+    #sudo iwconfig $IF essid Leif
+    #sudo iwconfig wls1 essid SKYbroadbandCC95
     sudo wpa_supplicant  -c/etc/wpa_supplicant.conf -i$IF -d &
     sudo dhclient $IF &
 }

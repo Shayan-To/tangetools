@@ -279,7 +279,7 @@ while(<IN>) {
 	# Relative to $dir
 	$file =~ s:^([^/]):$dir/$1:;
 	$file =~ s:/./:/:g; # /./ => /
-	$file =~ s:/[^/]+/../:/:g; # /foo/../ => /
+	$file =~ s:/[^/]+/\.\./:/:g; # /foo/../ => /
 	# Match files in $PWD or starting with ./
 	my $local = ($file =~ m<^(\Q$ENV{'PWD'}\E|\./)>);
 	my $read = readfunc($function,$addinfo);
