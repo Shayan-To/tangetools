@@ -61,7 +61,8 @@ bits = searchlen*4
 part = readparts();
 tabs = math.ceil(bits/3.0)
 if tabs > len(part)-1:
-    print("Too many bits",bits,tabs,len(part))
+    print("Too few tabs: %s hex values is %s bits which needs %d tabs and there are only %s"
+          % (searchlen,bits,tabs,len(part)))
     exit(1);
 
 part = mergeparts(tabs,part)

@@ -2,8 +2,8 @@ CMD = blink bsearch burncpu duplicate-packets em encdir field forever	\
 	G gitnext gitundo goodpasswd histogram mtrr mirrorpdf neno	\
 	off pdfman pidcmd plotpipe puniq ramusage rand rclean rina rn	\
 	rrm shython sound-reload stdout swapout T timestamp tracefile	\
-	transpose upsidedown vid w4it-for-port-open wifi-reload wssh	\
-	ytv yyyymmdd
+	transpose upsidedown vid w4it-for-port-open whitehash		\
+	wifi-reload wssh ytv yyyymmdd
 
 all: blink/blink.1 bsearch/bsearch.1 burncpu/burncpu.1			\
 	encdir/encdir.1 G/G.1 gitnext/gitnext.1 gitundo/gitundo.1	\
