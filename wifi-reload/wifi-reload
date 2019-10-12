@@ -79,10 +79,8 @@ startnm() {
 config() {
     IF=$1
     sudo bash -c 'cat >> /etc/resolv.conf' < /etc/resolvconf/resolv.conf.d/head 
-    sudo iwconfig $IF essid Turris
-    #sudo iwconfig $IF essid olet
-    #sudo iwconfig $IF essid elverhoej
-    #sudo iwconfig $IF essid Leif
+    #sudo iwconfig wls1 essid Turris
+    #sudo iwconfig wls1 essid Leif
     #sudo iwconfig wls1 essid SKYbroadbandCC95
     sudo wpa_supplicant  -c/etc/wpa_supplicant.conf -i$IF -d &
     sudo dhclient $IF &
@@ -90,11 +88,11 @@ config() {
 
 stop
 starthw
-config wlp3s0
-#startnm
+IF=$(stdout iwconfig |perl -ane '/^\s|no wireless extension/ and next; print $F[0],"\n"')
+iwconfig
+config $IF
+startnm
 if tty -s ; then
     # STDIN is terminal
     true timeout 12 dmesg -Tw &
 fi
-#config wlp3s0
-#config wlx0016e63a51cb

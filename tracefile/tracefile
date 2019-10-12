@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -w
 
 =head1 NAME
 
@@ -55,8 +55,8 @@ List only normal files.
 
 =item B<--local>
 
-List only files in current directory. Useful to avoid matching at
-system files.
+List only files in current directory. Useful to avoid matching system
+files.
 
 
 =item B<-n>
@@ -84,14 +84,14 @@ List only files once.
 
 =item B<--read>
 
-List only files being access for reading.
+List only files being accessed for reading.
 
 
 =item B<-w>
 
 =item B<--write>
 
-List only files being access for writing.
+List only files being accessed for writing.
 
 
 =back
@@ -255,6 +255,7 @@ init_functions();
 my @cmd = shell_quote(@ARGV);
 my $dir = ".";
 my $pid = $opt::pid ? "-p $opt::pid" : "";
+my %seen;
 
 # BUG: If command gives output on stderr that can confuse the strace output
 open(IN, "-|", "strace -ff $pid -e trace=file @cmd 2>&1 >/dev/null") || die;
@@ -493,3 +494,4 @@ sub my_dump(@) {
     }
 }
 
+$opt::debug = $opt::all;

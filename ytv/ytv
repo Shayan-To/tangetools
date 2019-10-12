@@ -86,10 +86,52 @@ if(not @ARGV) {
     }
 }
 
+sub playfiles {
+    my @files = @_;
+
+    if($opt::kodi) {
+	my @existing =
+	    uniq(
+		grep { -f $_ }
+		map { $a=$b=$_; $b=~s/.part//; s/.temp//; $a,$b,$_ } @files
+	    );
+	for (my $i = 0; $i <= $#existing; $i++) {
+	    my $answer;
+	    $_ = $existing[$i];
+	    do {
+		print "KODI playing $_\n";
+		if(not fork()) {
+		    exec("idok", $_);
+		}
+		print "Press (r)etry, (d)elete, (p)revious, (n)ext\n";
+		$answer = undef;
+		while(not defined $answer) {
+		    open(my $tty_fh, "<", "/dev/tty") ||
+			::die_bug("interactive-tty");
+		    $answer = <$tty_fh>;
+		    close $tty_fh;
+		    if($answer =~ /d/i) {
+			unlink $_;
+		    }
+		    if($answer =~ /p/i) {
+			$i -= 2;
+		    }
+		}
+	    } while($answer =~ /^$|r/i);
+	}
+    } else {
+	system("vlc", map { $a=$b=$_; $b=~s/.part//; s/.temp//; $a,$b,$_ } @files);
+    }
+}
+
 sub play {
     my $url = shift;
 
     print "Playing $url\n";
+    if(-e $url) {
+	playfiles($url);
+	return;
+    }
     if(not fork()) {
 	# Download in the background
 	system(qw(youtube-dl --all-subs --skip-download), @tor,$url);
@@ -119,28 +161,7 @@ sub play {
 	# Mark as seen
 	map { $before{$_} = -M $_ } @new;
 	# Run VLC on the matching files
-	if($opt::kodi) {
-	    for(uniq(map { $a=$b=$_; $b=~s/.part//; s/.temp//; $a,$b,$_ } @new)) {
-		my $answer;
-		do {
-		    print "KODI playing $_\n";
-		    if(not fork()) {
-			exec("idok", $_);
-		    }
-		    print "Press (r)etry, (d)elete, (n)ext\n";
-		    while(not $answer) {
-			open(my $tty_fh, "<", "/dev/tty") || ::die_bug("interactive-tty");
-			$answer = <$tty_fh>;
-			close $tty_fh;
-			if($answer =~ /d/i) {
-			    unlink $_;
-			}
-		    }
-		} while($answer =~ /r/i);
-	    }
-	} else {
-	    system("vlc", map { $a=$b=$_; $b=~s/.part//; s/.temp//; $a,$b,$_ } @new);
-	}
+	playfiles(@new);
 	@new = grep { not $before{$_} or $before{$_} > -M $_ } <*>;
     }
 }
