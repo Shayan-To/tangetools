@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# Kill firefox content processes
+
+ps aux |G firefox contentproc childID -v grep |field 2 | xargs -r kill

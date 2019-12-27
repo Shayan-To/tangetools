@@ -27,7 +27,7 @@ Mount mydir.enc on mydir:
 
 =head1 AUTHOR
 
-Copyright (C) 2017 Ole Tange,
+Copyright (C) 2017-2020 Ole Tange,
 http://ole.tange.dk and Free Software Foundation, Inc.
 
 
@@ -64,10 +64,12 @@ B<encfs>
 
 if [ -z "$2" ] ; then
   fusermount -u $1 2>/dev/null
-  encfs `readlink -f $1.enc` `readlink -f $1`  
+  # --public only works if root. Ignored otherwise.
+  encfs --public `readlink -f "$1".enc` `readlink -f "$1"`
 else
   fusermount -u `readlink -f $2` 2>/dev/null
-  encfs `readlink -f $1` `readlink -f $2`  
+  # --public only works if root. Ignored otherwise.
+  encfs --public `readlink -f "$1"` `readlink -f "$2"`
 fi
 
 

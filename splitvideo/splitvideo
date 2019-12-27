@@ -1,0 +1,233 @@
+#!/usr/bin/perl -w
+
+=pod
+
+=head1 NAME
+
+splitvideo - Split video at time stamp
+
+
+=head1 SYNOPSIS
+
+B<splitvideo> time videofile
+
+
+=head1 DESCRIPTION
+
+B<splitvideo> splits I<videofile> at I<time>.
+
+I<time> is given in seconds or as HH:MM:SS.s.
+
+I<videofile> will be split into: I<videofile>-00:00:00.0-ZZ:ZZ:ZZ.Z
+and I<videofile>-ZZ:ZZ:ZZ.Z-YY:YY:YY.Y where Z is the split time and Y
+is the length of the video.
+
+If I<videofile> contains XX:XX:XX.X-YY:YY:YY.Y I<videofile> will be
+split into: I<videofile>-XX:XX:XX.X-ZZ:ZZ:ZZ.Z and
+I<videofile>-ZZ:ZZ:ZZ.Z-YY:YY:YY.Y.
+
+After splitting is done I<videofile> is moved to ~/.rm/splitvideo.
+
+
+=head1 USES
+
+B<splitvideo> can be used on the commandline:
+
+   splitvideo 3600 myvideo.mp4
+
+It can also be called from VLC by installing B<splitvideo.lua> from
+https://gitlab.com/ole.tange/tangetools/tree/master/splitvideo in
+B<~/.local/share/vlc/lua/extensions/>
+
+
+=head1 AUTHOR
+
+Copyright (C) 2019 Ole Tange,
+http://ole.tange.dk and Free Software Foundation, Inc.
+
+
+=head1 LICENSE
+
+Copyright (C) 2012 Free Software Foundation, Inc.
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+at your option any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 DEPENDENCIES
+
+B<splitvideo> uses B<perl> and B<ffmpeg>.
+
+
+=head1 SEE ALSO
+
+B<ffmpeg>
+
+
+=cut
+
+use strict;
+
+my $time = shift;
+my $infile = shift;
+
+my $rmdir = find_rm_dir(".") || ".rm";
+-d $rmdir or mkdir $rmdir;
+$rmdir .= "/splitvideo";
+-d $rmdir or mkdir $rmdir;
+
+$time = format_time($time);
+
+if(not -e $infile or $time !~ /\d\d:\d\d:\d\d.\d/) {
+    print "$time";
+    print "$0 HH:MM:SS.t video.file\n",
+	"To split video.file at HH:MM:SS.t\n",
+	"The original file will be moved to .../.rm\n\n";
+} else {
+    my ($start_file,$end_file) = destinationfilenames($infile,$time);
+    # fmpeg -t 00:25:29 -i in.mp4 -c copy out-start.mp4
+    my @start = ("ffmpeg","-t",$time,"-i","file:$infile","-c","copy","file:$start_file");
+    system(@start) == 0 or die(join" ",@start);
+    # fmpeg -ss 00:25:29 -i in.mp4 -c copy out-end.mp4
+    my @end = ("ffmpeg","-ss",$time,"-i","file:$infile","-c","copy","file:$end_file");
+    system(@end) == 0 or die(join" ",@end);
+    system("mv",$infile,$rmdir) == 0 or die;
+}
+
+sub destinationfilenames {
+    # Inputs:
+    #   $file = video file name
+    #   $time = time to split at
+    # Return name with:
+    #   basename-(starttime)-(starttime+time).ext
+    #   basename-(starttime+time)-(videolength).ext
+    my $file = shift;
+    my $time = shift;
+    my ($startfile,$endfile);
+    my $basename = $file;
+    $basename =~ s/(\.[^.]+)$//;
+    my $extension = $1;
+    if($basename =~ s/-(\d\d:\d\d:\d\d.\d)-(\d\d:\d\d:\d\d.\d)//) {
+	my $add = format_time(to_secs($1)+to_secs($time));
+	$startfile = "$basename-$1-$add$extension";
+	$endfile = "$basename-$add-$2$extension";
+    } else {
+	my $length = videolength($file);
+	$startfile = "$basename-00:00:00.0-$time$extension";
+	$endfile = "$basename-$time-$length$extension";
+    }
+    return($startfile,$endfile);
+}
+
+sub videolength {
+    # Inputs:
+    #   $file = video filename
+    # Return:
+    #   length of $file in 00:00:00.0 format
+    my $file = shell_quote_scalar_default(shift);
+    # mp4info 'The future of London'"'"'s airports-KXmpdJO9UOc.mp4'
+    # The future of London's airports-KXmpdJO9UOc.mp4:
+    # Track   Type    Info
+    # 1       video   H264 Main@3.1, 561.560 secs, 932 kbps, 1280x720 @ 25.000000 fps
+    # 2       audio   MPEG-4 AAC LC, 561.574 secs, 0 kbps, 44100 Hz
+    open(my $fh, "-|", "mp4info $file") || die;
+    my $length = 0;
+    for(<$fh>) {
+	/(\d+.\d+) secs/ and $length = max($1,$length);
+	warn $_;
+    }
+    $length ||= "99:99:99.9";
+    $length = format_time($length);
+    return $length;
+}
+
+sub max(@) {
+    # Returns:
+    #   Maximum value of array
+    my $max;
+    for (@_) {
+        # Skip undefs
+        defined $_ or next;
+        defined $max or do { $max = $_; next; }; # Set $_ to the first non-undef
+        $max = ($max > $_) ? $max : $_;
+    }
+    return $max;
+}
+
+sub shell_quote_scalar_default($) {
+    # Quote for other shells (Bourne compatibles)
+    # Inputs:
+    #   $string = string to be quoted
+    # Returns:
+    #   $shell_quoted = string quoted as needed by the shell
+    my $s = $_[0];
+    if($s =~ /[^-_.+a-z0-9\/]/i) {
+	$s =~ s/'/'"'"'/g; # "-quote single quotes
+	$s = "'$s'";       # '-quote entire string
+	$s =~ s/^''//;     # Remove unneeded '' at ends
+	$s =~ s/''$//;     # (faster than s/^''|''$//g)
+	return $s;
+    } elsif ($s eq "") {
+	return "''";
+    } else {
+	# No quoting needed
+	return $s;
+    }
+}
+
+sub to_secs {
+    # Inputs:
+    #   $time = time in seconds or 00:00:00.0
+    # Returns:
+    #   time in seconds
+    my $time = shift;
+    $time =~ /(((\d\d):)?((\d\d):))?(\d\d+)\.(\d+)/;
+    my $secs = $3 * 3600 + $5 * 60 + $6 + eval "0.$7";
+    return $secs;
+}
+
+sub format_time {
+    # Inputs:
+    #   $time = time in seconds or 00:00:00.0
+    # Returns:
+    #   time in 00:00:00.0
+    my $time = shift;
+    if($time =~ /^\d+(\.\d+)?$/) {
+	# Time in seconds
+	my $h = int($time/3600);
+	my $m = int($time/60) - 60*$h;
+	my $s = int($time) - 60*$m - 3600*$h;
+	my $ys = $time - int($time);
+	$time = sprintf("%02d:%02d:%02d.%d",$h,$m,$s,$ys);
+    }
+
+    $time =~ s/^(\d):?(\d\d)$/00:0$1:$2/;
+    $time =~ s/^(\d\d):?(\d\d)$/00:$1:$2/;
+    $time =~ s/^(\d\d:\d\d)$/00:$1/;
+    $time =~ s/^(\d\d:\d\d:\d\d)$/$1.0/;
+    return $time;
+}
+
+sub find_rm_dir {
+    my $dir = shift;
+    if(-d "$dir/.rm") {
+	return "$dir/.rm";
+    }
+    if(join(" ",stat $dir) eq join(" ",stat "../$dir")) {
+	# We have reached root dir (.. = .)
+	return undef;
+    } else {
+	return find_rm_dir("../$dir");
+    } 
+}
+

@@ -43,18 +43,20 @@ def mergeparts(tabs,part):
 
     p2 = []
     for i in range(len(x)-1):
-        p2.append("".join(part[x[i]:x[i+1]]))
+        p2.append(("".join(part[x[i]:x[i+1]])).encode("utf-8"))
     return(p2)
 
+spc = [ i.encode("utf-8")
+        for i in ("", " ", "  ", "   ", "    ", "     ", "      ", "       ") ]
 def recur(pre,n):
     if n == len(part)-1:
-        for i in ("", " ", "  ", "   ", "    ", "     ", "      ", "       "):
-            sha1 = (hashlib.sha1((pre+i+part[n]).encode("utf-8")).hexdigest())[0:searchlen];
+        for i in spc:
+            sha1 = (hashlib.sha1(pre+i+part[n]).hexdigest())[0:searchlen];
             if sha1 in searchstrings:
-                print(hashlib.sha1((pre+i+part[n]).encode("utf-8")).hexdigest())
-                print(pre+i+part[n])
+                print(hashlib.sha1(pre+i+part[n]).hexdigest())
+                print((pre+i+part[n]).decode())
     else:
-        for i in ("", " ", "  ", "   ", "    ", "     ", "      ", "       "):
+        for i in spc:
             recur(pre+i+part[n],n+1)
             
 bits = searchlen*4
@@ -66,7 +68,7 @@ if tabs > len(part)-1:
     exit(1);
 
 part = mergeparts(tabs,part)
-s="0123456789abcdef"
+s = "0123456789abcdef"
 # Chop at searchlen
 searchstrings = [ i[0:searchlen] for i in
                   # Generate 111..1 222..2 .. fff..f
