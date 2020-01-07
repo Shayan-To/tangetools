@@ -26,4 +26,5 @@ install:
 	mkdir -p /usr/local/share/man/man1
 	parallel ln -sf `pwd`/{} /usr/local/share/man/man1/{/} ::: */*.1
 	mkdir -p $(HOME)/.local/share/vlc/lua/extensions
-	ln -s `pwd`/splitvideo/dotlocal/share/vlc/lua/extensions/splitvideo.lua $(HOME)/.local/share/vlc/lua/extensions/splitvideo.lua
+	ln -sf `pwd`/splitvideo/dotlocal/share/vlc/lua/extensions/splitvideo.lua $(HOME)/.local/share/vlc/lua/extensions/splitvideo.lua
+	ln -sf `pwd`/wastebasket/dotlocal/share/vlc/lua/extensions/WasteBasket.lua $(HOME)/.local/share/vlc/lua/extensions/WasteBasket.lua

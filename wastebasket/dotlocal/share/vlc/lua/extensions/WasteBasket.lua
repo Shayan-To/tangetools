@@ -74,6 +74,11 @@ function wastedir(dir)
   end
   -- try the parent dir
   local parent = dirname(dir)
+  if(parent == dir) then
+    -- we have reached root (/)
+    -- return wdir (which does not exist)
+    return wdir
+  end
   vlc.msg.dbg("[Wastebasket/wastedir] parent " .. parent)
   if directory_exists(parent) then
     return wastedir(parent)
