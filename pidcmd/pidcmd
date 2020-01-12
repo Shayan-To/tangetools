@@ -10,7 +10,7 @@ pidcmd - Show the command run by a pid
 
 =head1 SYNOPSIS
 
-B<pidcmd> I<pid>
+B<pidcmd> I<pids>
 
 
 =head1 DESCRIPTION
@@ -29,11 +29,14 @@ Show the command for pid 1
 
   pidcmd 1
 
+Show the command for pid 1000 and 1002
 
+  pidcmd 1000 1002
+  
 
 =head1 AUTHOR
 
-Copyright (C) 2019 Ole Tange,
+Copyright (C) 2019-2020 Ole Tange,
 http://ole.tange.dk and Free Software Foundation, Inc.
 
 
@@ -67,4 +70,7 @@ B<ps>
 
 =cut
 
-cat /proc/$1/cmdline | xargs -0
+for pid in "$@"; do 
+    cat /proc/$pid/cmdline | xargs -0
+done
+
